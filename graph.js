@@ -1,17 +1,21 @@
+
+//PARTIE CLIENT
 var canvas = document.getElementById('viewport')
 var ctx = document.getElementById('viewport').getContext('2d');
+var nodeSelectionne = null;
+
 class Renderer{
-	constructor(canvas){
+	constructor(canvas,arbor){
 		this.canvas = canvas;
 		this.ctx = canvas.getContext('2d');
-		this.particleSystem
+        this.particleSystem
 	}
   	init(system){
 		this.particleSystem = system;
         this.particleSystem.screenSize(this.canvas.width, this.canvas.height); 
-		this.particleSystem.screenPadding(80);
-		this.initMouseHandling(this.canvas,this.particleSystem)
-
+        this.particleSystem.screenPadding(80);
+        this.resize()
+        this.initMouseHandling(this.canvas,this.particleSystem)
 	};
   	redraw(){
 		this.ctx.fillStyle = "white";
@@ -20,63 +24,99 @@ class Renderer{
 			// edge: {source:Node, target:Node, length:#, data:{}}
 			// pt1:  {x:#, y:#}  source position in screen coords
 			// pt2:  {x:#, y:#}  target position in screen coords
-
 			// draw a line from pt1 to pt2
-			this.renderer.ctx.strokeStyle = "rgba(0,0,0, .333)"
+			this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
 			this.renderer.ctx.lineWidth = 1
 			this.renderer.ctx.beginPath()
 			this.renderer.ctx.moveTo(pt1.x, pt1.y)
 			this.renderer.ctx.lineTo(pt2.x, pt2.y)
-			this.renderer.ctx.stroke()
+            this.renderer.ctx.stroke()
 		})
 
 		this.particleSystem.eachNode(function(node, pt){
+            
 			// node: {mass:#, p:{x,y}, name:"", data:{}}
 			// pt:   {x:#, y:#}  node position in screen coords
-
-			// draw a rectangle centered at pt
+            // draw a rectangle centered at pt
+            /*
 			var w = 10
-			this.renderer.ctx.fillStyle = donneCouleur(node.name)//(node.data.alone) ? "pink" : "black"
-			this.renderer.ctx.fillRect(pt.x-w/2, pt.y-w/2, w,w)
-		})
+			this.renderer.ctx.fillStyle = donneCouleur(node.name)
+            this.renderer.ctx.fillRect(pt.x-w/2, pt.y-w/2, w,w)
+            */
+           var w =  60//Math.max(20, 20+gfx.textWidth(node.name));
+           var tailleRec = w * 5
+            if (node.name != nodeSelectionne){
+                this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                this.renderer.ctx.beginPath();
+                this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
+                this.renderer.ctx.fill();
+                this.renderer.ctx.stroke();
+                CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.data.nom);               
+              }else{
+                var w = 10
+                this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                this.renderer.ctx.fillRect(pt.x-w/2 - tailleRec/2, pt.y-w/2 - tailleRec/2,tailleRec,tailleRec)
+                CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.name,1); 
+              }
+            
+        })
+        //les "fleches"
+        /*
+        this.particleSystem.eachEdge(function(edge, pt1, pt2){
+            var w = 15
+			this.renderer.ctx.strokeStyle =  "rgba(255,0,0, .333)" 
+			this.renderer.ctx.beginPath()
+			this.renderer.ctx.arc(pt1.x-w/2,pt1.y-w/2,w,0,2*Math.PI);
+            this.renderer.ctx.fill();
+            this.renderer.ctx.stroke()
+        })
+        */
 		listeCarre.forEach(element => {
 			CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,element.e6,element.e7,element.e8)
 		});
-	};
+    };
+    resize(){
+        this.canvas.width = 1.3 * screen.width;
+        this.canvas.height = 1.3* screen.height;
+        sys.screen({size:{width:canvas.width, height:canvas.height}})
+        this.redraw()
+    };
 	initMouseHandling(canvas,particleSystem){
         // no-nonsense drag and drop (thanks springy.js)
         var dragged = null;
-		var _mouseP = null;
+        var _mouseP = null;
+        var selected = null;
+        var nearest = null;
         // set up a handler object that will initially listen for mousedowns then
         // for moves and mouseups while dragging
         var handler = {
           clicked:function(e){
             //var pos = canvas.;
              _mouseP = arbor.Point(e.pageX/*-pos.left*/, e.pageY/*-pos.top*/)
-            dragged = particleSystem.nearest(_mouseP);
+            //dragged = particleSystem.nearest(_mouseP);
+            nearest = sys.nearest(_mouseP);
+            if (!nearest.node) return false
+            selected = (nearest.distance < 1000) ? nearest : null
+            dragged = selected;
 
             if (dragged && dragged.node !== null){
               // while we're dragging, don't let physics move the node
-              dragged.node.fixed = true
+              dragged.node.fixed = true;
+              nodeSelectionne = dragged.node.name;
             }
-
 			canvas.addEventListener("mousemove", handler.dragged); 
             document.defaultView.addEventListener("mouseup", handler.dropped); 
-
             return false
           },
           dragged:function(e){
             var pos = canvas.offset;
             var s = arbor.Point(e.pageX/*-pos.left*/, e.pageY/*-pos.top*/)
-
             if (dragged && dragged.node !== null){
               var p = particleSystem.fromScreen(s)
               dragged.node.p = p
             }
-
             return false
           },
-
           dropped:function(e){
             if (dragged===null || dragged.node===undefined) return
             if (dragged.node !== null) dragged.node.fixed = false
@@ -85,13 +125,12 @@ class Renderer{
 			canvas.addEventListener("mousemove", handler.dragged); 
             document.defaultView.addEventListener("mouseup", handler.dropped); 
             _mouseP = null
+            nodeSelectionne = null;
             return false
           }
         }
-        
 		// start listening
 		canvas.addEventListener("mousedown", handler.clicked); 
-
       }
 }
 
@@ -101,15 +140,15 @@ class Renderer{
 var sys = arbor.ParticleSystem(100, 1000, 0.8);
 //var sys = arbor.ParticleSystem();
 sys.parameters({gravity:true})
-sys.renderer = new Renderer(document.getElementById('viewport'));
+sys.renderer = new Renderer(document.getElementById('viewport'),arbor);
 
 function test(){
-sys.addEdge('rouge a','b')
-sys.addEdge('rouge a','c')
-sys.addEdge('rouge a','d')
-sys.addEdge('d','rouge a')
-sys.addEdge('rouge a','e')
-sys.addNode('f', {alone:true, mass:.25})
+    sys.addEdge('rouge a','b')
+    sys.addEdge('rouge a','c')
+    sys.addEdge('rouge a','d')
+    sys.addEdge('d','rouge a')
+    sys.addEdge('rouge a','e')
+    sys.addNode('f', {alone:true, mass:.25})
 }
 
 var listeCouleur = [];//chaque structure
@@ -121,7 +160,7 @@ var listeCouleurAssocier  = [];//generer aleatoirement
 ///////FONCTIONS ARBOR//////////////
 
 function donneCouleur(nom){
-	var valeur = nom.split(" ")[0] 
+	var valeur = nom.split("\n")[0] 
 	for(let i = 0; i < listeCouleur.length;i++){
 		if(listeCouleur[i] == valeur)return listeCouleurAssocier[i];
 	}
@@ -137,7 +176,7 @@ function donneCouleur(nom){
 /////////////////////////////TRAITEMENT/////////////////////////
 
 class noeud{
-    constructor(adresse,type,contenu){
+    constructor(adresse,type,contenu,symbol_name,tableau){
         //this.marque = false;
         //this.pose = false;
         //this.numCycle = [];
@@ -148,6 +187,8 @@ class noeud{
         this.adresse = adresse;
         this.type = type;
         this.contenu = contenu;
+        this.symbol_name = symbol_name;
+        this.tableau = tableau;
     }
     addEnfant(nouveauNoeud){
         this.enfants.push(nouveauNoeud);
@@ -333,23 +374,19 @@ function creerNoeud(data){
     var listeNoeud = [];
     data.nodes.forEach(element => {
         var contenu = "";
-        if(element.fields != undefined){
+        if(element.type == 'struct'){
         element.fields.forEach(e => {
             contenu+= e.field_name + " : " + e.value + "\n";
         });
 		}
-		else{
-			contenu = element.base.symbol_name;
-		}
-		var type = element.base.type
-		if(type.split(" ").length > 0){
-			type = ""
-			for(let i = 0; i< element.base.type.split(" ").length;i++){
-				type +=  element.base.type.split(" ")[i];
-				if(element.base.type.split(" ").length-1 != i)type += "_";
-			}
-		}
-        listeNoeud.push(new noeud(element.base.address,type,contenu))
+		else if(element.type == 'pointer'){
+            contenu = element.base.symbol_name + "\nadresse: " + element.base.address + "\ntarget: " + element.target + "\ntarget type: " + element.target_type;
+        }
+        else if(element.type == 'array'){
+            contenu = element.base.symbol_name + "\nelement type: "+element.element_type+"\nnombre elements: "+element.n_element
+        }
+        var type = element.base.type
+        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements))
     });
 
     //la liste est créé, il va falloir maintenant creer les structures
@@ -369,28 +406,51 @@ function creerNoeud(data){
 
 function creerNode(sys,liste){
 	//les couleurs
-	var posX = 75;
+    var posX = 75;
+    //Chaque couleur est generer si le type n'a pas de couleur assigné
 	liste.forEach(element => {
 		if(!appartientListe(element.type,listeCouleur)){
 			listeCouleur.push(element.type);
-			var couleur = '#'+(Math.random()*0xFFFFFF<<0).toString(16)
+			var couleur = '#'+(randomFixe(0.3)*0xFFFFFF<<0).toString(16)
 			listeCouleurAssocier.push(couleur);	
-		}
-		element.contenu = element.type + " " + element.contenu;
-	});
+        }
+		element.contenu = element.type + "\n" + element.contenu;
+    });
+    //on créé les legendes à partir de la liste de couleur 
 	for(let i = 0; i < listeCouleur.length;i++){
 		listeCarre.push(new carre(ctx,posX,25,150,50,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
 		posX+=150;
 	}
 
+    //on connait chaque noeud et ses parents/enfants, on peut donc créé les liens
+    var symb;
+    liste.forEach(element => {
+        if(element.symbol_name != null)symb =  element.symbol_name;
+        else {
+            symb =  element.adresse;
+        }
+        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau});
+    });
+
 	liste.forEach(element => {
 		element.enfants.forEach(enfant => {
-			sys.addEdge(element.contenu,enfant.contenu);
+            //Creation des nodes
+            let double = false;
+            enfant.enfants.forEach(parent => {
+                if(parent == element){
+                    double = true;
+                }
+            });
+			sys.addEdge(element.contenu,enfant.contenu,{double:double,parent:element.contenu});
 		});
-	});
-
+    });
 }
 
+function randomFixe(a){
+    let retour = Math.random();
+    while(retour < a)retour = Math.random();
+    return retour;
+}
 
 function appartientListe(element,liste){
 	retour = false;
@@ -425,12 +485,24 @@ function CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur){
  * @param {any} couleur la couleur format "#000000"
  * @param {texte} texte le texte à ecrire
  */
-function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte){
+function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut){
     ctx.textAlign = "center";
     ctx.textBaseline="middle";
     ctx.font = Taille + "px " + police;
     ctx.fillStyle = couleur; 
-    ctx.fillText(texte,coordX,coordY); 
+    if(saut == undefined)saut = 0;
+    var compte = 0;
+    var num = texte.split("\n").length - saut
+    if( num > 1){
+        coordY -= Taille * (texte.split("\n").length/2) 
+        if(num == 0)coordY += Taille/2;
+    }
+    texte.split("\n").forEach(element => {
+        if(compte >= saut){
+        ctx.fillText(element,coordX,coordY); 
+        coordY+=Taille;
+        }compte++;
+    });
 }
 
 /**
@@ -453,11 +525,12 @@ function CreerRectangleText(ctx,coordX,coordY,TailleX,TailleY,couleur,texte,poli
     CreerText(ctx,coordX,coordY,tailleText,police,"#000000",texte);
 }
 
-document.getElementById("clickMe").onclick = reload;
 function clear(){
 	sys.renderer.particleSystem.eachNode(function(node, pt){
 		sys.pruneNode(node);
 	})
-	listeCarre = [];
-	
+	listeCarre = [];	
 }
+
+//BOUTONS
+document.getElementById("clickMe").onclick = reload;
