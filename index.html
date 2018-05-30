@@ -1,11 +1,18 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>Arbor</title>
+		<title>Lotos</title>
+		<link rel="stylesheet" type="text/css" href="lotos.css">
 	</head>
-	<body>
-		<input id="clickMe" type="button" value="reload" onclick="clear();" />
-		<canvas id="viewport" width="1920" height="1080" style="border:1px solid #000000;"></canvas>
+	<body> 
+		<input id="clickMe" type="button" value="reload" class="button" />
+		<input id="versTableau" type="button" value="Tableau" class="button" />
+		<div id='d1' style="position: absolute;left:0px;">  
+			<canvas id="viewport" width="1920" height="1080" style="border:2px solid #000000;"></canvas>
+		</div>
+		<div class="slider-wrapper">
+				<input type="range" min="0" max="1" value="0" step="any" class="slider" id = "sliderTab" >
+		</div>
 		<script src="./jquery-3.3.1.min.js"></script>
 		<script src="./arbor-v0.92/lib/arbor.js"></script>
 		<script src="./arbor-v0.92/lib/arbor-tween.js"></script>

@@ -1,8 +1,4 @@
-
-//PARTIE CLIENT
-var canvas = document.getElementById('viewport')
-var ctx = document.getElementById('viewport').getContext('2d');
-var nodeSelectionne = null;
+var etat = 0;
 
 class Renderer{
 	constructor(canvas,arbor){
@@ -11,55 +7,62 @@ class Renderer{
         this.particleSystem
 	}
   	init(system){
-		this.particleSystem = system;
+        this.particleSystem = system;
+        this.resize()
         this.particleSystem.screenSize(this.canvas.width, this.canvas.height); 
         this.particleSystem.screenPadding(80);
-        this.resize()
+        
         this.initMouseHandling(this.canvas,this.particleSystem)
 	};
   	redraw(){
 		this.ctx.fillStyle = "white";
-		this.ctx.fillRect(0,0, this.canvas.width, this.canvas.height);
-		this.particleSystem.eachEdge(function(edge, pt1, pt2){
-			// edge: {source:Node, target:Node, length:#, data:{}}
-			// pt1:  {x:#, y:#}  source position in screen coords
-			// pt2:  {x:#, y:#}  target position in screen coords
-			// draw a line from pt1 to pt2
-			this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
-			this.renderer.ctx.lineWidth = 1
-			this.renderer.ctx.beginPath()
-			this.renderer.ctx.moveTo(pt1.x, pt1.y)
-			this.renderer.ctx.lineTo(pt2.x, pt2.y)
-            this.renderer.ctx.stroke()
-		})
+        this.ctx.fillRect(0,0, this.canvas.width, this.canvas.height);  
+		    this.particleSystem.eachEdge(function(edge, pt1, pt2){
+			    this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
+			    this.renderer.ctx.lineWidth = 1
+			    this.renderer.ctx.beginPath()
+			    this.renderer.ctx.moveTo(pt1.x, pt1.y)
+			    this.renderer.ctx.lineTo(pt2.x, pt2.y)
+                this.renderer.ctx.stroke()
+		    })
 
-		this.particleSystem.eachNode(function(node, pt){
-            
-			// node: {mass:#, p:{x,y}, name:"", data:{}}
-			// pt:   {x:#, y:#}  node position in screen coords
-            // draw a rectangle centered at pt
-            /*
-			var w = 10
-			this.renderer.ctx.fillStyle = donneCouleur(node.name)
-            this.renderer.ctx.fillRect(pt.x-w/2, pt.y-w/2, w,w)
-            */
-           var w =  60//Math.max(20, 20+gfx.textWidth(node.name));
-           var tailleRec = w * 5
-            if (node.name != nodeSelectionne){
-                this.renderer.ctx.fillStyle = donneCouleur(node.name)
-                this.renderer.ctx.beginPath();
-                this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
-                this.renderer.ctx.fill();
-                this.renderer.ctx.stroke();
-                CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.data.nom);               
-              }else{
-                var w = 10
-                this.renderer.ctx.fillStyle = donneCouleur(node.name)
-                this.renderer.ctx.fillRect(pt.x-w/2 - tailleRec/2, pt.y-w/2 - tailleRec/2,tailleRec,tailleRec)
-                CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.name,1); 
-              }
-            
-        })
+		    this.particleSystem.eachNode(function(node, pt){
+                var w =  60//Math.max(20, 20+gfx.textWidth(node.name));
+                var tailleRec = w * 20
+                if (node.name != nodeSelectionne){
+                    this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                    this.renderer.ctx.beginPath();
+                    this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
+                    this.renderer.ctx.fill();
+                    this.renderer.ctx.stroke();
+                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.data.nom);               
+                }else{
+                    var w = 10
+                    this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                    this.renderer.ctx.fillRect(pt.x-w/2 - tailleRec/2, pt.y-w/2 - tailleRec/2,tailleRec,tailleRec)
+                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,100,"Arial","black",node.name,1); 
+                }
+            })
+
+            listeCarre.forEach(element => {
+                CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,element.e6,element.e7,element.e8)
+            });
+           var leContexte = this.ctx;
+           if(etat == 1){
+               var compte = 0;
+               var coordy = 50;
+               var nbplace = (this.canvas.height/50 << 0) - 3;//nb de case que l'on peut afficher
+               var stateSlider = document.getElementById("sliderTab").value;
+               CreerText(leContexte,this.canvas.width * 0.95,coordy,40,"Arial","black",nodeTab.data.nom);
+                nodeTab.data.tableau.forEach(element => {
+                    if(compte >= stateSlider * nodeTab.data.tableau.length && compte <= stateSlider * nodeTab.data.tableau.length + nbplace){
+                        coordy += 50;
+                        CreerText(leContexte,this.canvas.width * 0.90,coordy,40,"Arial","black",compte + ":")
+                        CreerText(leContexte,this.canvas.width * 0.95,coordy,40,"Arial","black",element)
+                    }compte++;
+                });
+           }
+        
         //les "fleches"
         /*
         this.particleSystem.eachEdge(function(edge, pt1, pt2){
@@ -71,38 +74,33 @@ class Renderer{
             this.renderer.ctx.stroke()
         })
         */
-		listeCarre.forEach(element => {
-			CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,element.e6,element.e7,element.e8)
-		});
+		
     };
     resize(){
-        this.canvas.width = 1.3 * screen.width;
-        this.canvas.height = 1.3* screen.height;
+        this.canvas.width =  0.98 * screen.width;
+        this.canvas.height = 0.8 * screen.height;
         sys.screen({size:{width:canvas.width, height:canvas.height}})
         this.redraw()
     };
 	initMouseHandling(canvas,particleSystem){
-        // no-nonsense drag and drop (thanks springy.js)
         var dragged = null;
         var _mouseP = null;
         var selected = null;
         var nearest = null;
-        // set up a handler object that will initially listen for mousedowns then
-        // for moves and mouseups while dragging
         var handler = {
           clicked:function(e){
-            //var pos = canvas.;
              _mouseP = arbor.Point(e.pageX/*-pos.left*/, e.pageY/*-pos.top*/)
-            //dragged = particleSystem.nearest(_mouseP);
             nearest = sys.nearest(_mouseP);
             if (!nearest.node) return false
             selected = (nearest.distance < 1000) ? nearest : null
             dragged = selected;
 
             if (dragged && dragged.node !== null){
-              // while we're dragging, don't let physics move the node
               dragged.node.fixed = true;
               nodeSelectionne = dragged.node.name;
+              if(dragged.node.data.tableau != undefined){
+                  nodeTab = dragged.node;
+              }
             }
 			canvas.addEventListener("mousemove", handler.dragged); 
             document.defaultView.addEventListener("mouseup", handler.dropped); 
@@ -135,25 +133,18 @@ class Renderer{
 }
 
 
-////////////////////TESTS/////////////////////////////
+////////////////////INIT/////////////////////////////
 
-var sys = arbor.ParticleSystem(100, 1000, 0.8);
-//var sys = arbor.ParticleSystem();
-sys.parameters({gravity:true})
-sys.renderer = new Renderer(document.getElementById('viewport'),arbor);
 
-function test(){
-    sys.addEdge('rouge a','b')
-    sys.addEdge('rouge a','c')
-    sys.addEdge('rouge a','d')
-    sys.addEdge('d','rouge a')
-    sys.addEdge('rouge a','e')
-    sys.addNode('f', {alone:true, mass:.25})
-}
-
+var canvas = document.getElementById('viewport')//on recupere le canvas
+var ctx = document.getElementById('viewport').getContext('2d');//son contexte (permet de dessiner)
+var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
+var nodeTab = null;
+var sys = arbor.ParticleSystem(100, 1000, 0.8);//on declare un particleSysteme qui permet le temps reel
+sys.parameters({gravity:true})//on ajoute la gravité
+sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on créé le renderer du particleSysteme
 var listeCouleur = [];//chaque structure
 var listeCouleurAssocier  = [];//generer aleatoirement
-
 
 
 
@@ -166,11 +157,6 @@ function donneCouleur(nom){
 	}
 	return "black";
 }
-
-
-
-
-
 
 
 /////////////////////////////TRAITEMENT/////////////////////////
@@ -227,135 +213,546 @@ function ouvrirJSON(sys){
         "nodes": [
             {
                 "base": {
-                    "address": "0x555555554670",
-                    "symbol_name": null,
-                    "type": "struct salarie",
-                    "raw_type": "struct salarie",
-                    "size": 56
+                    "address": "0x7fffffffdca4",
+                    "symbol_name": "val",
+                    "type": "uint32_t",
+                    "raw_type": "unsigned int",
+                    "size": 4
                 },
-                "type": "struct",
-                "fields": [
-                    {
-                        "field_name": "prenom",
-                        "bitpos": 0,
-                        "type": "char [16]",
-                        "size": 16,
-                        "value": "(char [16]) 0x555555554670: "
-                    },
-                    {
-                        "field_name": "nom",
-                        "bitpos": 128,
-                        "type": "char [32]",
-                        "size": 32,
-                        "value": "(char [32]) 0x555555554680: "
-                    },
-                    {
-                        "field_name": "age",
-                        "bitpos": 384,
-                        "type": "uint8_t",
-                        "size": 1,
-                        "value": "(uint8_t) 0x5555555546a0: 72 'H'"
-                    },
-                    {
-                        "field_name": "anciennete",
-                        "bitpos": 392,
-                        "type": "uint8_t",
-                        "size": 1,
-                        "value": "(uint8_t) 0x5555555546a1: 141 '\\215'"
-                    },
-                    {
-                        "field_name": "salaire",
-                        "bitpos": 416,
-                        "type": "uint32_t",
-                        "size": 4,
-                        "value": "(uint32_t) 0x5555555546a4: 1207967753"
-                    }
-                ]
+                "type": "scalar",
+                "value": "42"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdc78",
-                    "symbol_name": "s1",
-                    "type": "struct salarie *",
-                    "raw_type": "struct salarie *",
+                    "address": "0x7fffffffdca8",
+                    "symbol_name": "tab",
+                    "type": "uint32_t *",
+                    "raw_type": "uint32_t *",
                     "size": 8
                 },
-                "type": "pointer",
-                "target": "0x555555554670",
-                "target_type": "struct salarie"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdc80",
-                    "symbol_name": "s2",
-                    "type": "struct salarie *",
-                    "raw_type": "struct salarie *",
-                    "size": 8
-                },
-                "type": "pointer",
-                "target": "0x7fffffffdd70",
-                "target_type": "struct salarie"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdd70",
-                    "symbol_name": null,
-                    "type": "struct salarie",
-                    "raw_type": "struct salarie",
-                    "size": 56
-                },
-                "type": "struct",
-                "fields": [
-                    {
-                        "field_name": "prenom",
-                        "bitpos": 0,
-                        "type": "char [16]",
-                        "size": 16,
-                        "value": "\u0001"
-                    },
-                    {
-                        "field_name": "nom",
-                        "bitpos": 128,
-                        "type": "char [32]",
-                        "size": 32,
-                        "value": ""
-                    },
-                    {
-                        "field_name": "age",
-                        "bitpos": 384,
-                        "type": "uint8_t",
-                        "size": 1,
-                        "value": "(uint8_t) 0x7fffffffdda0: 161 '\\241'"
-                    },
-                    {
-                        "field_name": "anciennete",
-                        "bitpos": 392,
-                        "type": "uint8_t",
-                        "size": 1,
-                        "value": "(uint8_t) 0x7fffffffdda1: 225 '\\341'"
-                    },
-                    {
-                        "field_name": "salaire",
-                        "bitpos": 416,
-                        "type": "uint32_t",
-                        "size": 4,
-                        "value": "(uint32_t) 0x7fffffffdda4: 32767"
-                    }
-                ]
+                "type": "array",
+                "dynamic": true,
+                "element_type": "uint32_t",
+                "element_size": 4,
+                "n_elements": 512,
+                "elements": [
+                    "210",
+                    "280",
+                    "315",
+                    "266",
+                    "181",
+                    "9",
+                    "487",
+                    "486",
+                    "6",
+                    "276",
+                    "16",
+                    "39",
+                    "196",
+                    "60",
+                    "348",
+                    "14",
+                    "254",
+                    "182",
+                    "211",
+                    "376",
+                    "323",
+                    "40",
+                    "318",
+                    "326",
+                    "80",
+                    "328",
+                    "42",
+                    "67",
+                    "192",
+                    "55",
+                    "92",
+                    "474",
+                    "371",
+                    "151",
+                    "258",
+                    "464",
+                    "11",
+                    "103",
+                    "412",
+                    "449",
+                    "345",
+                    "129",
+                    "76",
+                    "180",
+                    "248",
+                    "13",
+                    "421",
+                    "158",
+                    "69",
+                    "300",
+                    "430",
+                    "297",
+                    "355",
+                    "224",
+                    "59",
+                    "51",
+                    "397",
+                    "82",
+                    "288",
+                    "136",
+                    "252",
+                    "246",
+                    "154",
+                    "269",
+                    "99",
+                    "109",
+                    "285",
+                    "289",
+                    "160",
+                    "137",
+                    "49",
+                    "384",
+                    "226",
+                    "502",
+                    "334",
+                    "286",
+                    "453",
+                    "234",
+                    "410",
+                    "418",
+                    "374",
+                    "330",
+                    "0",
+                    "227",
+                    "314",
+                    "459",
+                    "35",
+                    "477",
+                    "142",
+                    "402",
+                    "292",
+                    "463",
+                    "385",
+                    "389",
+                    "339",
+                    "408",
+                    "167",
+                    "168",
+                    "209",
+                    "455",
+                    "157",
+                    "193",
+                    "208",
+                    "283",
+                    "481",
+                    "1",
+                    "161",
+                    "452",
+                    "190",
+                    "299",
+                    "360",
+                    "85",
+                    "454",
+                    "78",
+                    "399",
+                    "437",
+                    "381",
+                    "505",
+                    "341",
+                    "364",
+                    "84",
+                    "471",
+                    "207",
+                    "298",
+                    "235",
+                    "304",
+                    "171",
+                    "253",
+                    "337",
+                    "310",
+                    "499",
+                    "106",
+                    "356",
+                    "184",
+                    "388",
+                    "188",
+                    "366",
+                    "291",
+                    "91",
+                    "357",
+                    "508",
+                    "104",
+                    "81",
+                    "5",
+                    "32",
+                    "472",
+                    "324",
+                    "507",
+                    "229",
+                    "354",
+                    "146",
+                    "46",
+                    "303",
+                    "325",
+                    "232",
+                    "72",
+                    "438",
+                    "61",
+                    "56",
+                    "150",
+                    "128",
+                    "506",
+                    "338",
+                    "205",
+                    "496",
+                    "352",
+                    "456",
+                    "265",
+                    "378",
+                    "458",
+                    "217",
+                    "274",
+                    "420",
+                    "401",
+                    "494",
+                    "448",
+                    "111",
+                    "375",
+                    "312",
+                    "33",
+                    "490",
+                    "302",
+                    "29",
+                    "340",
+                    "413",
+                    "21",
+                    "94",
+                    "407",
+                    "34",
+                    "191",
+                    "359",
+                    "263",
+                    "219",
+                    "37",
+                    "510",
+                    "349",
+                    "382",
+                    "309",
+                    "8",
+                    "250",
+                    "100",
+                    "387",
+                    "331",
+                    "174",
+                    "432",
+                    "311",
+                    "88",
+                    "431",
+                    "409",
+                    "47",
+                    "346",
+                    "493",
+                    "97",
+                    "113",
+                    "15",
+                    "306",
+                    "497",
+                    "317",
+                    "391",
+                    "124",
+                    "362",
+                    "273",
+                    "22",
+                    "201",
+                    "484",
+                    "321",
+                    "221",
+                    "121",
+                    "373",
+                    "141",
+                    "3",
+                    "155",
+                    "403",
+                    "470",
+                    "214",
+                    "238",
+                    "43",
+                    "165",
+                    "105",
+                    "204",
+                    "89",
+                    "260",
+                    "102",
+                    "110",
+                    "143",
+                    "185",
+                    "335",
+                    "476",
+                    "350",
+                    "423",
+                    "440",
+                    "441",
+                    "53",
+                    "501",
+                    "206",
+                    "344",
+                    "93",
+                    "433",
+                    "272",
+                    "177",
+                    "247",
+                    "118",
+                    "336",
+                    "446",
+                    "244",
+                    "233",
+                    "203",
+                    "363",
+                    "394",
+                    "415",
+                    "361",
+                    "451",
+                    "138",
+                    "23",
+                    "282",
+                    "66",
+                    "240",
+                    "62",
+                    "353",
+                    "383",
+                    "319",
+                    "71",
+                    "425",
+                    "379",
+                    "70",
+                    "173",
+                    "68",
+                    "390",
+                    "27",
+                    "422",
+                    "166",
+                    "131",
+                    "424",
+                    "329",
+                    "132",
+                    "202",
+                    "159",
+                    "216",
+                    "444",
+                    "107",
+                    "170",
+                    "63",
+                    "28",
+                    "212",
+                    "439",
+                    "195",
+                    "175",
+                    "316",
+                    "462",
+                    "108",
+                    "398",
+                    "200",
+                    "245",
+                    "25",
+                    "114",
+                    "239",
+                    "237",
+                    "95",
+                    "294",
+                    "144",
+                    "187",
+                    "342",
+                    "295",
+                    "251",
+                    "358",
+                    "492",
+                    "4",
+                    "17",
+                    "133",
+                    "278",
+                    "301",
+                    "256",
+                    "152",
+                    "491",
+                    "271",
+                    "147",
+                    "125",
+                    "77",
+                    "461",
+                    "140",
+                    "12",
+                    "277",
+                    "122",
+                    "52",
+                    "48",
+                    "64",
+                    "488",
+                    "120",
+                    "483",
+                    "447",
+                    "370",
+                    "380",
+                    "411",
+                    "307",
+                    "45",
+                    "223",
+                    "429",
+                    "267",
+                    "320",
+                    "199",
+                    "482",
+                    "296",
+                    "255",
+                    "65",
+                    "10",
+                    "162",
+                    "478",
+                    "26",
+                    "54",
+                    "149",
+                    "24",
+                    "450",
+                    "75",
+                    "127",
+                    "293",
+                    "176",
+                    "7",
+                    "393",
+                    "164",
+                    "332",
+                    "57",
+                    "442",
+                    "396",
+                    "139",
+                    "287",
+                    "473",
+                    "343",
+                    "148",
+                    "87",
+                    "101",
+                    "322",
+                    "236",
+                    "220",
+                    "406",
+                    "50",
+                    "98",
+                    "404",
+                    "443",
+                    "275",
+                    "392",
+                    "511",
+                    "466",
+                    "156",
+                    "445",
+                    "83",
+                    "134",
+                    "365",
+                    "489",
+                    "31",
+                    "467",
+                    "79",
+                    "123",
+                    "479",
+                    "428",
+                    "189",
+                    "313",
+                    "169",
+                    "86",
+                    "351",
+                    "503",
+                    "241",
+                    "468",
+                    "179",
+                    "268",
+                    "172",
+                    "228",
+                    "112",
+                    "18",
+                    "416",
+                    "368",
+                    "20",
+                    "222",
+                    "509",
+                    "480",
+                    "126",
+                    "405",
+                    "73",
+                    "435",
+                    "262",
+                    "218",
+                    "419",
+                    "213",
+                    "495",
+                    "261",
+                    "327",
+                    "231",
+                    "395",
+                    "178",
+                    "197",
+                    "427",
+                    "215",
+                    "38",
+                    "153",
+                    "386",
+                    "465",
+                    "284",
+                    "115",
+                    "305",
+                    "400",
+                    "119",
+                    "264",
+                    "30",
+                    "475",
+                    "163",
+                    "434",
+                    "460",
+                    "417",
+                    "183",
+                    "504",
+                    "116",
+                    "369",
+                    "96",
+                    "145",
+                    "243",
+                    "2",
+                    "257",
+                    "198",
+                    "347",
+                    "281",
+                    "279",
+                    "135",
+                    "426",
+                    "90",
+                    "290",
+                    "270",
+                    "500",
+                    "36",
+                    "469",
+                    "377",
+                    "249",
+                    "58",
+                    "186",
+                    "367",
+                    "457",
+                    "194",
+                    "230",
+                    "41",
+                    "130",
+                    "242",
+                    "74",
+                    "117",
+                    "372",
+                    "19",
+                    "333",
+                    "485",
+                    "225",
+                    "44",
+                    "308",
+                    "259",
+                    "436",
+                    "498",
+                    "414"
+                ],
+                "starting_address": "0x555555756260"
             }
         ],
-        "edges": [
-            [
-                "0x7fffffffdc78",
-                "0x555555554670",
-                null
-            ],
-            [
-                "0x7fffffffdc80",
-                "0x7fffffffdd70",
-                null
-            ]
-        ]
+        "edges": []
     };
 	retour = creerNoeud(data);  
 	creerNode(sys,retour) 
@@ -383,7 +780,10 @@ function creerNoeud(data){
             contenu = element.base.symbol_name + "\nadresse: " + element.base.address + "\ntarget: " + element.target + "\ntarget type: " + element.target_type;
         }
         else if(element.type == 'array'){
-            contenu = element.base.symbol_name + "\nelement type: "+element.element_type+"\nnombre elements: "+element.n_element
+            contenu = element.base.symbol_name + "\ntype: "+element.element_type+"\nnombre elements: "+element.n_elements
+        }
+        else{
+            contenu = element.base.symbol_name + "\ntype: "+element.base.raw_type+"\nvaleur: "+element.value;
         }
         var type = element.base.type
         listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements))
@@ -406,7 +806,7 @@ function creerNoeud(data){
 
 function creerNode(sys,liste){
 	//les couleurs
-    var posX = 75;
+    var posX = 150;
     //Chaque couleur est generer si le type n'a pas de couleur assigné
 	liste.forEach(element => {
 		if(!appartientListe(element.type,listeCouleur)){
@@ -418,8 +818,8 @@ function creerNode(sys,liste){
     });
     //on créé les legendes à partir de la liste de couleur 
 	for(let i = 0; i < listeCouleur.length;i++){
-		listeCarre.push(new carre(ctx,posX,25,150,50,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
-		posX+=150;
+		listeCarre.push(new carre(ctx,posX,25,300,100,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
+		posX+=300;
 	}
 
     //on connait chaque noeud et ses parents/enfants, on peut donc créé les liens
@@ -534,3 +934,21 @@ function clear(){
 
 //BOUTONS
 document.getElementById("clickMe").onclick = reload;
+document.getElementById("versTableau").onclick = versTableau;
+document.getElementById("sliderTab").oninput = refresh;
+///POSITIONNEMENT DEGUEUX
+document.getElementById("sliderTab").style.width = 0.8 * screen.height;
+document.getElementById("sliderTab").style.top = screen.height-screen.height * 0.924 + "px" 
+document.getElementById("sliderTab").style.left = screen.width * 0.93 + "px" 
+document.getElementById("sliderTab").value = 0;
+
+function versTableau(){
+    if(nodeTab == null)return;
+    if(etat != 1)etat = 1;
+    else etat = 0;
+    refresh();
+}
+
+function refresh(){
+    sys.renderer.redraw();
+}
