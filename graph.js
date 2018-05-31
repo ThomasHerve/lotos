@@ -12,7 +12,7 @@ class Renderer{
         this.particleSystem.screenSize(this.canvas.width, this.canvas.height); 
         this.particleSystem.screenPadding(80);
         
-        this.initMouseHandling(this.canvas,this.particleSystem)
+        this.initMouseHandling(this.canvas,this.particleSystem,this)
 	};
   	redraw(){
 		this.ctx.fillStyle = "white";
@@ -27,9 +27,10 @@ class Renderer{
 		    })
 
 		    this.particleSystem.eachNode(function(node, pt){
-                var w =  60//Math.max(20, 20+gfx.textWidth(node.name));
-                var tailleRec = w * 20
-                if (node.name != nodeSelectionne){
+                var w =  document.getElementById('viewport').width/60//Math.max(20, 20+gfx.textWidth(node.name));
+                var tailleRec = w * 8
+                if(node.data.active){
+                if (node.name != nodeSelectionne || di == 1){
                     this.renderer.ctx.fillStyle = donneCouleur(node.name)
                     this.renderer.ctx.beginPath();
                     this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
@@ -37,28 +38,36 @@ class Renderer{
                     this.renderer.ctx.stroke();
                     CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.data.nom);               
                 }else{
-                    var w = 10
                     this.renderer.ctx.fillStyle = donneCouleur(node.name)
                     this.renderer.ctx.fillRect(pt.x-w/2 - tailleRec/2, pt.y-w/2 - tailleRec/2,tailleRec,tailleRec)
-                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,100,"Arial","black",node.name,1); 
+                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,tailleRec/10,"Arial","black",node.name,1); 
                 }
+            }
             })
-
+            var compte = 0;
             listeCarre.forEach(element => {
-                CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,element.e6,element.e7,element.e8)
+                if(listeCouleurActive[compte]){
+                    CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,element.e6,element.e7,element.e8)
+                }
+                else{
+                    CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,"#AAAAAA",element.e7,element.e8)
+                }
+                compte++;
             });
            var leContexte = this.ctx;
            if(etat == 1){
                var compte = 0;
-               var coordy = 50;
-               var nbplace = (this.canvas.height/50 << 0) - 3;//nb de case que l'on peut afficher
+               var fixe = this.canvas.height/50;
+               var coordy = fixe;
+               var tailleFont = coordy * 0.8;
+               var nbplace = (this.canvas.height/fixe << 0) - 3;//nb de case que l'on peut afficher
                var stateSlider = document.getElementById("sliderTab").value;
-               CreerText(leContexte,this.canvas.width * 0.95,coordy,40,"Arial","black",nodeTab.data.nom);
+               CreerText(leContexte,this.canvas.width * 0.95,coordy,tailleFont,"Arial","black",nodeTab.data.nom);
                 nodeTab.data.tableau.forEach(element => {
                     if(compte >= stateSlider * nodeTab.data.tableau.length && compte <= stateSlider * nodeTab.data.tableau.length + nbplace){
-                        coordy += 50;
-                        CreerText(leContexte,this.canvas.width * 0.90,coordy,40,"Arial","black",compte + ":")
-                        CreerText(leContexte,this.canvas.width * 0.95,coordy,40,"Arial","black",element)
+                        coordy += fixe;
+                        CreerText(leContexte,this.canvas.width * 0.90,coordy,tailleFont,"Arial","black",compte + ":")
+                        CreerText(leContexte,this.canvas.width * 0.95,coordy,tailleFont,"Arial","black",element)
                     }compte++;
                 });
            }
@@ -77,25 +86,37 @@ class Renderer{
 		
     };
     resize(){
-        this.canvas.width =  0.98 * screen.width;
-        this.canvas.height = 0.8 * screen.height;
         sys.screen({size:{width:canvas.width, height:canvas.height}})
         this.redraw()
     };
-	initMouseHandling(canvas,particleSystem){
+	initMouseHandling(canvas,particleSystem,that){
         var dragged = null;
         var _mouseP = null;
         var selected = null;
         var nearest = null;
         var handler = {
           clicked:function(e){
-             _mouseP = arbor.Point(e.pageX/*-pos.left*/, e.pageY/*-pos.top*/)
+             _mouseP = arbor.Point(e.pageX, e.pageY)
+            //PARTIE BOUTON
+            if(e.pageX < (listeCarre.length) * canvas.width/15 && e.pageY <  canvas.height/15){
+                var selec = e.pageX/(canvas.width/15)<<0;
+                listeCouleurActive[selec] = !listeCouleurActive[selec];
+                particleSystem.eachNode(function(node, pt){
+                    if(listeCouleurAssocier[selec] == donneCouleur(node.name)){
+                        node.data.active = !node.data.active;
+                        
+                    }
+                })
+                that.redraw()
+            }
+            else{
+             //PARTIE NODES
             nearest = sys.nearest(_mouseP);
             if (!nearest.node) return false
-            selected = (nearest.distance < 1000) ? nearest : null
+            selected = (nearest.distance < 200) ? nearest : null
             dragged = selected;
 
-            if (dragged && dragged.node !== null){
+            if (dragged && dragged.node !== null && dragged.node.data.active){
               dragged.node.fixed = true;
               nodeSelectionne = dragged.node.name;
               if(dragged.node.data.tableau != undefined){
@@ -105,11 +126,11 @@ class Renderer{
 			canvas.addEventListener("mousemove", handler.dragged); 
             document.defaultView.addEventListener("mouseup", handler.dropped); 
             return false
+            }
           },
           dragged:function(e){
-            var pos = canvas.offset;
-            var s = arbor.Point(e.pageX/*-pos.left*/, e.pageY/*-pos.top*/)
-            if (dragged && dragged.node !== null){
+            var s = arbor.Point(e.pageX, e.pageY)
+            if (dragged && dragged.node !== null && di == 1 && dragged.node.data.active){
               var p = particleSystem.fromScreen(s)
               dragged.node.p = p
             }
@@ -141,10 +162,11 @@ var ctx = document.getElementById('viewport').getContext('2d');//son contexte (p
 var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
 var nodeTab = null;
 var sys = arbor.ParticleSystem(100, 1000, 0.8);//on declare un particleSysteme qui permet le temps reel
-sys.parameters({gravity:true})//on ajoute la gravité
+sys.parameters({gravity:false})//on ajoute la gravité
 sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on créé le renderer du particleSysteme
 var listeCouleur = [];//chaque structure
 var listeCouleurAssocier  = [];//generer aleatoirement
+var listeCouleurActive = []; //permet de savoit si tel ou tel couleur est active
 
 
 
@@ -200,11 +222,10 @@ class carre{
 }
 listeCarre = [];
 
-ouvrirJSON(sys);
 
 
 function reload(){
-	clear();
+    clear();
 	ouvrirJSON(sys);
 }
 
@@ -805,8 +826,8 @@ function creerNoeud(data){
 }
 
 function creerNode(sys,liste){
-	//les couleurs
-    var posX = 150;
+    //les couleurs
+    var posX = canvas.width/30;
     //Chaque couleur est generer si le type n'a pas de couleur assigné
 	liste.forEach(element => {
 		if(!appartientListe(element.type,listeCouleur)){
@@ -818,9 +839,11 @@ function creerNode(sys,liste){
     });
     //on créé les legendes à partir de la liste de couleur 
 	for(let i = 0; i < listeCouleur.length;i++){
-		listeCarre.push(new carre(ctx,posX,25,300,100,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
-		posX+=300;
-	}
+        listeCarre.push(new carre(ctx,posX,canvas.height/30,canvas.width/15,canvas.height/15,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
+        listeCouleurActive.push(true);
+		posX+=canvas.width/15;
+    }
+   
 
     //on connait chaque noeud et ses parents/enfants, on peut donc créé les liens
     var symb;
@@ -829,7 +852,7 @@ function creerNode(sys,liste){
         else {
             symb =  element.adresse;
         }
-        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau});
+        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau,active:true});
     });
 
 	liste.forEach(element => {
@@ -920,9 +943,9 @@ function CreerRectangleText(ctx,coordX,coordY,TailleX,TailleY,couleur,texte,poli
     if(couleur == "#000000")console.error("un carre textuel ne peut etre noir");
     CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur);
     var tailleMax = TailleX - 2;
-    var tailleText = TailleY/(texte.length/5);
+    var tailleText = TailleY/(texte.length/3);
     if(tailleMax < tailleText)tailleText = tailleMax;
-    CreerText(ctx,coordX,coordY,tailleText,police,"#000000",texte);
+    CreerText(ctx,coordX,coordY + tailleText/2 ,tailleText,police,"#000000",texte);
 }
 
 function clear(){
@@ -933,22 +956,46 @@ function clear(){
 }
 
 //BOUTONS
-document.getElementById("clickMe").onclick = reload;
+document.getElementById("viewport").width =  0.98 * screen.width;
+document.getElementById("viewport").height = 0.8 * screen.height;
+document.getElementById("clickMe").onclick = depInfo;
+var di = 0;
 document.getElementById("versTableau").onclick = versTableau;
 document.getElementById("sliderTab").oninput = refresh;
-///POSITIONNEMENT DEGUEUX
+
+///POSITIONNEMENT SLIDER
 document.getElementById("sliderTab").style.width = 0.8 * screen.height;
-document.getElementById("sliderTab").style.top = screen.height-screen.height * 0.924 + "px" 
-document.getElementById("sliderTab").style.left = screen.width * 0.93 + "px" 
 document.getElementById("sliderTab").value = 0;
+
+document.getElementById("sliderTab").style.top ="10px" 
+document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.8  + "px" 
+document.getElementById("sliderTab").style.visibility = "hidden"
+
 
 function versTableau(){
     if(nodeTab == null)return;
-    if(etat != 1)etat = 1;
-    else etat = 0;
+    if(etat != 1){
+        etat = 1;
+        document.getElementById("sliderTab").style.visibility = "visible"
+    }
+    else {
+        etat = 0;
+        document.getElementById("sliderTab").style.visibility = "hidden"
+    }
     refresh();
 }
 
 function refresh(){
     sys.renderer.redraw();
 }
+
+function depInfo(){
+    if(di == 0){
+        di = 1;
+        document.getElementById("clickMe").value = "Info"
+    }
+    else {di = 0; document.getElementById("clickMe").value = "Deplacement"}
+}
+
+//LANCEMENT
+ouvrirJSON(sys);
