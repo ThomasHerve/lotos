@@ -1,4 +1,5 @@
 var etat = 0;
+var tailleCarre = 2.5
 
 class Renderer{
 	constructor(canvas,arbor){
@@ -15,35 +16,76 @@ class Renderer{
         this.initMouseHandling(this.canvas,this.particleSystem,this)
 	};
   	redraw(){
-		this.ctx.fillStyle = "white";
+        this.ctx.fillStyle = "white";
+        var w =  document.getElementById('viewport').width/60//Math.max(20, 20+gfx.textWidth(node.name));
         this.ctx.fillRect(0,0, this.canvas.width, this.canvas.height);  
+        var pS = this.particleSystem;
+        var decale = w * tailleCarre;
 		    this.particleSystem.eachEdge(function(edge, pt1, pt2){
-			    this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
-			    this.renderer.ctx.lineWidth = 1
-			    this.renderer.ctx.beginPath()
-			    this.renderer.ctx.moveTo(pt1.x, pt1.y)
-			    this.renderer.ctx.lineTo(pt2.x, pt2.y)
-                this.renderer.ctx.stroke()
+                if( pS.getNode(edge.data.enfant).data.active &&  pS.getNode(edge.data.parent).data.active){
+                    if(di == 1 || pS.getNode(edge.data.parent).name != nodeSelectionne || pS.getNode(edge.data.parent).data.typeGenerique != "struct" || pS.getNode(edge.data.parent).data.pointeurs.length == 0){
+			            this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
+			            this.renderer.ctx.lineWidth = 1
+			            this.renderer.ctx.beginPath()
+			            this.renderer.ctx.moveTo(pt1.x - w/2, pt1.y - w/2)
+			            this.renderer.ctx.lineTo(pt2.x - w/2, pt2.y - w/2)
+                        this.renderer.ctx.stroke()
+                    }
+                    else{
+                        this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
+			            this.renderer.ctx.lineWidth = 1
+			            this.renderer.ctx.beginPath()
+			            this.renderer.ctx.moveTo(pt1.x - w/2 + decale, pt1.y - w/2)
+			            this.renderer.ctx.lineTo(pt2.x - w/2, pt2.y - w/2)
+                        this.renderer.ctx.stroke()
+                        decale+=w * tailleCarre;
+                    }
+                }
 		    })
 
 		    this.particleSystem.eachNode(function(node, pt){
-                var w =  document.getElementById('viewport').width/60//Math.max(20, 20+gfx.textWidth(node.name));
-                var tailleRec = w * 8
                 if(node.data.active){
                 if (node.name != nodeSelectionne || di == 1){
-                    this.renderer.ctx.fillStyle = donneCouleur(node.name)
                     this.renderer.ctx.beginPath();
+                    this.renderer.ctx.fillStyle = donneCouleur(node.name);
+                    this.renderer.ctx.strokeStyle = donneCouleur(node.name);
                     this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
                     this.renderer.ctx.fill();
                     this.renderer.ctx.stroke();
-                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,12,"Arial","black",node.data.nom);               
+                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);   
                 }else{
-                    this.renderer.ctx.fillStyle = donneCouleur(node.name)
-                    this.renderer.ctx.fillRect(pt.x-w/2 - tailleRec/2, pt.y-w/2 - tailleRec/2,tailleRec,tailleRec)
-                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,tailleRec/10,"Arial","black",node.name,1); 
+                    if(node.data.typeGenerique == "struct"){
+                        this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                        this.renderer.ctx.fillRect(0, listeCarre[0].e5,listeCarre[0].e4 * 2,listeCarre[0].e5 * 14)
+                        CreerTexteNonCentre(this.renderer.ctx,0,listeCarre[0].e5 * 2,listeCarre[0].e5/4,"Arial","black",node.name,1,listeCarre[0].e4 * 2); 
+                    }
+                    if(node.data.typeGenerique == "struct" && node.data.pointeurs.length > 0){
+                        CreerRectangle(this.renderer.ctx,pt.x - w/2,pt.y - w/2,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
+                        var pX = pt.x  - w/2 + w*tailleCarre
+                        var compt = 0;
+                        var t = node.name.split("\n")[1].split(":")[1];
+                        CreerText(this.renderer.ctx,pt.x - w/2,pt.y-w/2,Math.max(w * tailleCarre/t.length,7),"Arial","black",t);  
+                        node.data.pointeurs.forEach(el => {
+                            CreerRectangle(this.renderer.ctx,pX,pt.y - w/2,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
+                            var text = (node.data.nomsPointeurs[compt])?node.data.nomsPointeurs[compt]:"null"
+                            CreerText(this.renderer.ctx,pX,pt.y-w/2,Math.max(w * tailleCarre/text.length,7),"Arial","black",text);  
+                            compt++;
+                            pX += w*tailleCarre
+                        });         
+                    }
+                    else{
+                        this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                        this.renderer.ctx.beginPath();
+                        this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
+                        this.renderer.ctx.fill();
+                        this.renderer.ctx.stroke();
+                        CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);  
+                    }
                 }
             }
             })
+
+
             var compte = 0;
             listeCarre.forEach(element => {
                 if(listeCouleurActive[compte]){
@@ -54,6 +96,8 @@ class Renderer{
                 }
                 compte++;
             });
+
+
            var leContexte = this.ctx;
            if(etat == 1){
                var compte = 0;
@@ -161,8 +205,8 @@ var canvas = document.getElementById('viewport')//on recupere le canvas
 var ctx = document.getElementById('viewport').getContext('2d');//son contexte (permet de dessiner)
 var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
 var nodeTab = null;
-var sys = arbor.ParticleSystem(100, 1000, 0.8);//on declare un particleSysteme qui permet le temps reel
-sys.parameters({gravity:false})//on ajoute la gravité
+var sys = arbor.ParticleSystem(100, 500, 0.8);//on declare un particleSysteme qui permet le temps reel
+sys.parameters({gravity:true})//on ajoute la gravité
 sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on créé le renderer du particleSysteme
 var listeCouleur = [];//chaque structure
 var listeCouleurAssocier  = [];//generer aleatoirement
@@ -184,7 +228,7 @@ function donneCouleur(nom){
 /////////////////////////////TRAITEMENT/////////////////////////
 
 class noeud{
-    constructor(adresse,type,contenu,symbol_name,tableau){
+    constructor(adresse,type,contenu,symbol_name,tableau,typeGenerique){
         //this.marque = false;
         //this.pose = false;
         //this.numCycle = [];
@@ -196,11 +240,14 @@ class noeud{
         this.type = type;
         this.contenu = contenu;
         this.symbol_name = symbol_name;
-        this.tableau = tableau;
+        this.tableau = tableau;7
+        this.typeGenerique = typeGenerique;
+        this.nomsPointeurs = []
     }
-    addEnfant(nouveauNoeud){
+    addEnfant(nouveauNoeud,nomP){
         this.enfants.push(nouveauNoeud);
         this.nbEnfants++;
+        this.nomsPointeurs.push(nomP);
     }
     addParent(nouveauNoeud){
         this.parents.push(nouveauNoeud);
@@ -234,546 +281,88 @@ function ouvrirJSON(sys){
         "nodes": [
             {
                 "base": {
-                    "address": "0x7fffffffdca4",
-                    "symbol_name": "val",
-                    "type": "uint32_t",
-                    "raw_type": "unsigned int",
-                    "size": 4
+                    "address": "0x5555557566b0",
+                    "symbol_name": null,
+                    "type": "struct salarie",
+                    "raw_type": "struct salarie",
+                    "size": 56
                 },
-                "type": "scalar",
-                "value": "42"
+                "type": "struct",
+                "fields": [
+                    {
+                        "field_name": "prenom",
+                        "bitpos": 0,
+                        "type": "char [16]",
+                        "size": 16,
+                        "value": "John"
+                    },
+                    {
+                        "field_name": "nom",
+                        "bitpos": 128,
+                        "type": "char [32]",
+                        "size": 32,
+                        "value": "Doe"
+                    },
+                    {
+                        "field_name": "age",
+                        "bitpos": 384,
+                        "type": "uint8_t",
+                        "size": 1,
+                        "value": "(uint8_t) 0x5555557566e0: 34 '\"'"
+                    },
+                    {
+                        "field_name": "anciennete",
+                        "bitpos": 392,
+                        "type": "uint8_t",
+                        "size": 1,
+                        "value": "(uint8_t) 0x5555557566e1: 10 '\\n'"
+                    },
+                    {
+                        "field_name": "salaire",
+                        "bitpos": 416,
+                        "type": "uint32_t",
+                        "size": 4,
+                        "value": "(uint32_t) 0x5555557566e4: 2500"
+                    }
+                ]
             },
             {
                 "base": {
-                    "address": "0x7fffffffdca8",
-                    "symbol_name": "tab",
-                    "type": "uint32_t *",
-                    "raw_type": "uint32_t *",
+                    "address": "0x7fffffffdc78",
+                    "symbol_name": "s1",
+                    "type": "struct salarie *",
+                    "raw_type": "struct salarie *",
                     "size": 8
                 },
-                "type": "array",
-                "dynamic": true,
-                "element_type": "uint32_t",
-                "element_size": 4,
-                "n_elements": 512,
-                "elements": [
-                    "210",
-                    "280",
-                    "315",
-                    "266",
-                    "181",
-                    "9",
-                    "487",
-                    "486",
-                    "6",
-                    "276",
-                    "16",
-                    "39",
-                    "196",
-                    "60",
-                    "348",
-                    "14",
-                    "254",
-                    "182",
-                    "211",
-                    "376",
-                    "323",
-                    "40",
-                    "318",
-                    "326",
-                    "80",
-                    "328",
-                    "42",
-                    "67",
-                    "192",
-                    "55",
-                    "92",
-                    "474",
-                    "371",
-                    "151",
-                    "258",
-                    "464",
-                    "11",
-                    "103",
-                    "412",
-                    "449",
-                    "345",
-                    "129",
-                    "76",
-                    "180",
-                    "248",
-                    "13",
-                    "421",
-                    "158",
-                    "69",
-                    "300",
-                    "430",
-                    "297",
-                    "355",
-                    "224",
-                    "59",
-                    "51",
-                    "397",
-                    "82",
-                    "288",
-                    "136",
-                    "252",
-                    "246",
-                    "154",
-                    "269",
-                    "99",
-                    "109",
-                    "285",
-                    "289",
-                    "160",
-                    "137",
-                    "49",
-                    "384",
-                    "226",
-                    "502",
-                    "334",
-                    "286",
-                    "453",
-                    "234",
-                    "410",
-                    "418",
-                    "374",
-                    "330",
-                    "0",
-                    "227",
-                    "314",
-                    "459",
-                    "35",
-                    "477",
-                    "142",
-                    "402",
-                    "292",
-                    "463",
-                    "385",
-                    "389",
-                    "339",
-                    "408",
-                    "167",
-                    "168",
-                    "209",
-                    "455",
-                    "157",
-                    "193",
-                    "208",
-                    "283",
-                    "481",
-                    "1",
-                    "161",
-                    "452",
-                    "190",
-                    "299",
-                    "360",
-                    "85",
-                    "454",
-                    "78",
-                    "399",
-                    "437",
-                    "381",
-                    "505",
-                    "341",
-                    "364",
-                    "84",
-                    "471",
-                    "207",
-                    "298",
-                    "235",
-                    "304",
-                    "171",
-                    "253",
-                    "337",
-                    "310",
-                    "499",
-                    "106",
-                    "356",
-                    "184",
-                    "388",
-                    "188",
-                    "366",
-                    "291",
-                    "91",
-                    "357",
-                    "508",
-                    "104",
-                    "81",
-                    "5",
-                    "32",
-                    "472",
-                    "324",
-                    "507",
-                    "229",
-                    "354",
-                    "146",
-                    "46",
-                    "303",
-                    "325",
-                    "232",
-                    "72",
-                    "438",
-                    "61",
-                    "56",
-                    "150",
-                    "128",
-                    "506",
-                    "338",
-                    "205",
-                    "496",
-                    "352",
-                    "456",
-                    "265",
-                    "378",
-                    "458",
-                    "217",
-                    "274",
-                    "420",
-                    "401",
-                    "494",
-                    "448",
-                    "111",
-                    "375",
-                    "312",
-                    "33",
-                    "490",
-                    "302",
-                    "29",
-                    "340",
-                    "413",
-                    "21",
-                    "94",
-                    "407",
-                    "34",
-                    "191",
-                    "359",
-                    "263",
-                    "219",
-                    "37",
-                    "510",
-                    "349",
-                    "382",
-                    "309",
-                    "8",
-                    "250",
-                    "100",
-                    "387",
-                    "331",
-                    "174",
-                    "432",
-                    "311",
-                    "88",
-                    "431",
-                    "409",
-                    "47",
-                    "346",
-                    "493",
-                    "97",
-                    "113",
-                    "15",
-                    "306",
-                    "497",
-                    "317",
-                    "391",
-                    "124",
-                    "362",
-                    "273",
-                    "22",
-                    "201",
-                    "484",
-                    "321",
-                    "221",
-                    "121",
-                    "373",
-                    "141",
-                    "3",
-                    "155",
-                    "403",
-                    "470",
-                    "214",
-                    "238",
-                    "43",
-                    "165",
-                    "105",
-                    "204",
-                    "89",
-                    "260",
-                    "102",
-                    "110",
-                    "143",
-                    "185",
-                    "335",
-                    "476",
-                    "350",
-                    "423",
-                    "440",
-                    "441",
-                    "53",
-                    "501",
-                    "206",
-                    "344",
-                    "93",
-                    "433",
-                    "272",
-                    "177",
-                    "247",
-                    "118",
-                    "336",
-                    "446",
-                    "244",
-                    "233",
-                    "203",
-                    "363",
-                    "394",
-                    "415",
-                    "361",
-                    "451",
-                    "138",
-                    "23",
-                    "282",
-                    "66",
-                    "240",
-                    "62",
-                    "353",
-                    "383",
-                    "319",
-                    "71",
-                    "425",
-                    "379",
-                    "70",
-                    "173",
-                    "68",
-                    "390",
-                    "27",
-                    "422",
-                    "166",
-                    "131",
-                    "424",
-                    "329",
-                    "132",
-                    "202",
-                    "159",
-                    "216",
-                    "444",
-                    "107",
-                    "170",
-                    "63",
-                    "28",
-                    "212",
-                    "439",
-                    "195",
-                    "175",
-                    "316",
-                    "462",
-                    "108",
-                    "398",
-                    "200",
-                    "245",
-                    "25",
-                    "114",
-                    "239",
-                    "237",
-                    "95",
-                    "294",
-                    "144",
-                    "187",
-                    "342",
-                    "295",
-                    "251",
-                    "358",
-                    "492",
-                    "4",
-                    "17",
-                    "133",
-                    "278",
-                    "301",
-                    "256",
-                    "152",
-                    "491",
-                    "271",
-                    "147",
-                    "125",
-                    "77",
-                    "461",
-                    "140",
-                    "12",
-                    "277",
-                    "122",
-                    "52",
-                    "48",
-                    "64",
-                    "488",
-                    "120",
-                    "483",
-                    "447",
-                    "370",
-                    "380",
-                    "411",
-                    "307",
-                    "45",
-                    "223",
-                    "429",
-                    "267",
-                    "320",
-                    "199",
-                    "482",
-                    "296",
-                    "255",
-                    "65",
-                    "10",
-                    "162",
-                    "478",
-                    "26",
-                    "54",
-                    "149",
-                    "24",
-                    "450",
-                    "75",
-                    "127",
-                    "293",
-                    "176",
-                    "7",
-                    "393",
-                    "164",
-                    "332",
-                    "57",
-                    "442",
-                    "396",
-                    "139",
-                    "287",
-                    "473",
-                    "343",
-                    "148",
-                    "87",
-                    "101",
-                    "322",
-                    "236",
-                    "220",
-                    "406",
-                    "50",
-                    "98",
-                    "404",
-                    "443",
-                    "275",
-                    "392",
-                    "511",
-                    "466",
-                    "156",
-                    "445",
-                    "83",
-                    "134",
-                    "365",
-                    "489",
-                    "31",
-                    "467",
-                    "79",
-                    "123",
-                    "479",
-                    "428",
-                    "189",
-                    "313",
-                    "169",
-                    "86",
-                    "351",
-                    "503",
-                    "241",
-                    "468",
-                    "179",
-                    "268",
-                    "172",
-                    "228",
-                    "112",
-                    "18",
-                    "416",
-                    "368",
-                    "20",
-                    "222",
-                    "509",
-                    "480",
-                    "126",
-                    "405",
-                    "73",
-                    "435",
-                    "262",
-                    "218",
-                    "419",
-                    "213",
-                    "495",
-                    "261",
-                    "327",
-                    "231",
-                    "395",
-                    "178",
-                    "197",
-                    "427",
-                    "215",
-                    "38",
-                    "153",
-                    "386",
-                    "465",
-                    "284",
-                    "115",
-                    "305",
-                    "400",
-                    "119",
-                    "264",
-                    "30",
-                    "475",
-                    "163",
-                    "434",
-                    "460",
-                    "417",
-                    "183",
-                    "504",
-                    "116",
-                    "369",
-                    "96",
-                    "145",
-                    "243",
-                    "2",
-                    "257",
-                    "198",
-                    "347",
-                    "281",
-                    "279",
-                    "135",
-                    "426",
-                    "90",
-                    "290",
-                    "270",
-                    "500",
-                    "36",
-                    "469",
-                    "377",
-                    "249",
-                    "58",
-                    "186",
-                    "367",
-                    "457",
-                    "194",
-                    "230",
-                    "41",
-                    "130",
-                    "242",
-                    "74",
-                    "117",
-                    "372",
-                    "19",
-                    "333",
-                    "485",
-                    "225",
-                    "44",
-                    "308",
-                    "259",
-                    "436",
-                    "498",
-                    "414"
-                ],
-                "starting_address": "0x555555756260"
+                "type": "pointer",
+                "target": "0x0",
+                "target_type": "struct salarie"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdc80",
+                    "symbol_name": "s2",
+                    "type": "struct salarie *",
+                    "raw_type": "struct salarie *",
+                    "size": 8
+                },
+                "type": "pointer",
+                "target": "0x5555557566b0",
+                "target_type": "struct salarie"
             }
         ],
-        "edges": []
+        "edges": [
+            [
+                "0x5555557566b0",
+                "0x7fffffffdc78",
+                null
+            ],
+            [
+                "0x7fffffffdc80",
+                "0x5555557566b0",
+                null
+            ]
+        ]
     };
 	retour = creerNoeud(data);  
 	creerNode(sys,retour) 
@@ -807,22 +396,33 @@ function creerNoeud(data){
             contenu = element.base.symbol_name + "\ntype: "+element.base.raw_type+"\nvaleur: "+element.value;
         }
         var type = element.base.type
-        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements))
+        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements,element.type))
     });
 
     //la liste est créé, il va falloir maintenant creer les structures
     data.edges.forEach(element => {
         //pour chaque arrete
-        var noeud1,noeud2;
-        listeNoeud.forEach(n => {
-            if(n.adresse == element[0])noeud1 = n;
-            else if(n.adresse == element[1])noeud2 = n;
-        });
-        noeud1.addEnfant(noeud2);
-        noeud2.addParent(noeud1);
+        if(element[1]){
+            var noeud1,noeud2;
+            listeNoeud.forEach(n => {
+                if(n.adresse == element[0])noeud1 = n;
+                else if(n.adresse == element[1])noeud2 = n;
+            });
+            noeud1.addEnfant(noeud2,element[2]);
+            noeud2.addParent(noeud1);
+            
+        }
     });
-
     return listeNoeud;
+}
+
+
+var listeCol = ["red","cyan","green","yellow","pink","light blue"]
+function couleurRandom(){
+    if(listeCol.length>0){
+        return listeCol.shift();
+    }
+    return '#'+(randomFixe(0.3)*0xFFFFFF<<0).toString(16);
 }
 
 function creerNode(sys,liste){
@@ -832,7 +432,7 @@ function creerNode(sys,liste){
 	liste.forEach(element => {
 		if(!appartientListe(element.type,listeCouleur)){
 			listeCouleur.push(element.type);
-			var couleur = '#'+(randomFixe(0.3)*0xFFFFFF<<0).toString(16)
+			var couleur = couleurRandom();
 			listeCouleurAssocier.push(couleur);	
         }
 		element.contenu = element.type + "\n" + element.contenu;
@@ -851,8 +451,9 @@ function creerNode(sys,liste){
         if(element.symbol_name != null)symb =  element.symbol_name;
         else {
             symb =  element.adresse;
-        }
-        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau,active:true});
+        }    
+       
+        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau,active:true,typeGenerique:element.typeGenerique,pointeurs:element.enfants,nomsPointeurs:element.nomsPointeurs});
     });
 
 	liste.forEach(element => {
@@ -864,7 +465,7 @@ function creerNode(sys,liste){
                     double = true;
                 }
             });
-			sys.addEdge(element.contenu,enfant.contenu,{double:double,parent:element.contenu});
+			sys.addEdge(element.contenu,enfant.contenu,{double:double,parent:element.contenu,enfant:enfant.contenu});
 		});
     });
 }
@@ -892,10 +493,20 @@ function appartientListe(element,liste){
  * @param {int} TailleY taille en Y
  * @param {any} couleur la couleur format "#000000"
  */
-function CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur){
-    if(TailleX < TailleY)console.error("les rectangles ne peuvent etre plus long que large");
-    ctx.fillStyle = couleur; 
-    ctx.fillRect(coordX-TailleX/2,coordY-TailleY/2,TailleX,TailleY);//on centre le rectangle
+function CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur,bordure,tailleBordure){
+    if(bordure){
+        ctx.beginPath();
+        ctx.strokeStyle=bordure;   
+        ctx.lineWidth=(tailleBordure != undefined)?tailleBordure:1;    
+        ctx.fillStyle = couleur; 
+        ctx.rect(coordX-TailleX/2,coordY-TailleY/2,TailleX,TailleY);//on centre le rectangle 
+        ctx.fill();
+        ctx.stroke();
+    }  
+    else{
+        ctx.fillStyle = couleur; 
+        ctx.fillRect(coordX-TailleX/2,coordY-TailleY/2,TailleX,TailleY);//on centre le rectangle 
+    }
 }
 
 /**
@@ -928,6 +539,43 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut){
     });
 }
 
+function CreerTexteNonCentre(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax){
+    if(!tailleMax)tailleMax = 10000;
+    else tailleMax *= 2;
+    ctx.textAlign = "left";
+    ctx.textBaseline="middle";
+    ctx.font = Taille + "px " + police;
+    ctx.fillStyle = couleur; 
+    if(saut == undefined)saut = 0;
+    var compte = 0;
+    var num = texte.split("\n").length - saut
+    if( num > 1){
+        coordY -= Taille * (texte.split("\n").length/2) 
+        if(num == 0)coordY += Taille/2;
+    }
+    texte.split("\n").forEach(element => {
+        if(compte >= saut){
+        var val = "";
+        if(element.length > tailleMax/Taille){
+           for(let i = 0;i < element.length;i++){
+                if(val.length<tailleMax/Taille)val+=element[i];
+                else{
+                    ctx.fillText(val,coordX,coordY); 
+                    coordY+=Taille;
+                    val = "";
+                }
+           }
+           ctx.fillText(val,coordX,coordY); 
+            coordY+=Taille;
+        }
+        else{
+            ctx.fillText(element,coordX,coordY); 
+            coordY+=Taille;
+        }
+        }compte++;
+    });
+}
+
 /**
  * Creer un rectangle avec du texte
  * @param {any} ctx le contexte
@@ -952,7 +600,7 @@ function clear(){
 	sys.renderer.particleSystem.eachNode(function(node, pt){
 		sys.pruneNode(node);
 	})
-	listeCarre = [];	
+	listeCarre = [];
 }
 
 //BOUTONS
@@ -971,6 +619,10 @@ document.getElementById("sliderTab").style.top ="10px"
 document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.8  + "px" 
 document.getElementById("sliderTab").style.visibility = "hidden"
 
+
+//TIMELINE
+document.getElementById("TimeLine").value = 0;
+document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.99;
 
 function versTableau(){
     if(nodeTab == null)return;

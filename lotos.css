@@ -8,6 +8,26 @@
     display: inline-block;
     font-size: 20px;
 }
+.buttonTime {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 10px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 15px;
+}
+
+
+.timeLine{
+    display: inline-block;
+    width: 20px;
+    height: 150px;
+    padding: 0;
+    position: absolute;
+    top: 150%;
+}
 
 .slider-wrapper {
     display: inline-block;
@@ -58,4 +78,42 @@
     height: 25px; /* Slider handle height */
     background: #4CAF50; /* Green background */
     cursor: pointer; /* Cursor on hover */
+}
+
+
+
+/* LA TIMELINE */
+
+
+
+.sliderTime{
+    -webkit-appearance: none;  /* Override default CSS styles */
+    background:#d3d3d3; /* Grey background */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+    width: 100%;
+}
+
+.sliderTime:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.sliderTime::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: rgb(4, 252, 25); 
+    cursor: pointer; /* Cursor on hover */
+    border-radius: 50%; 
+}
+
+.sliderTime::-moz-range-thumb {
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: rgb(4, 252, 25);
+    cursor: pointer; /* Cursor on hover */
+    border-radius: 50%; 
 }

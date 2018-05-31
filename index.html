@@ -4,17 +4,29 @@
 		<title>Lotos</title>
 		<link rel="stylesheet" type="text/css" href="lotos.css">
 	</head>
-	<body> 
-
+	<body style="background-color: rgb(255, 248, 210);"> 
 		<div id='d1'>  
 			<canvas id="viewport" width="10" height="10" style="border:2px solid #000000;"></canvas>
 		</div>
-		<div>
+		<div style = "position:relative;">
+			<div class="timeLine">
+					<input type="range" min="0" max="1" value="0" step="any" class="sliderTime" id = "TimeLine">
+			</div>	
 			<input id="clickMe" type="button" value="Deplacement" class="button" />
 			<input id="versTableau" type="button" value="Tableau" class="button" />
+			<input id="dunno" type="button" value="Work in Progress" class="button" />
+				
 		</div>
+		
 		<div class="slider-wrapper">
 				<input type="range" min="0" max="1" value="0" step="any" class="slider" id = "sliderTab" >
+				
+		</div>
+		<div style="position: relative;bottom:0px;">
+				<input id="plus1" type="button" value="+1" class="buttonTime" />
+				<input id="plus5" type="button" value="+5" class="buttonTime" />
+				<input id="plus10" type="button" value="+10" class="buttonTime" />
+				<input id="Marque" type="button" value="Marque" class="buttonTime" />
 		</div>
 	
 		<script src="./jquery-3.3.1.min.js"></script>
