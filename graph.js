@@ -14,32 +14,99 @@ class Renderer{
         this.particleSystem.screenPadding(80);
         
         this.initMouseHandling(this.canvas,this.particleSystem,this)
-	};
+    };
+
+
+     Norm(xA,yA,xB,yB) {return Math.sqrt(Math.pow(xB-xA,2)+Math.pow(yB-yA,2));}
+     Vecteur (ctx,xA,yA,xB,yB,ArrowLength,ArrowWidth) {
+     if (ArrowLength === undefined) {ArrowLength=10;}
+     if (ArrowWidth === undefined) {ArrowWidth=8;}
+     ctx.lineCap="round";
+    // Calculs des coordonnées des points C, D et E
+     var AB=this.Norm(xA,yA,xB,yB);
+     var xC=xB+ArrowLength*(xA-xB)/AB;var yC=yB+ArrowLength*(yA-yB)/AB;
+     var xD=xC+ArrowWidth*(-(yB-yA))/AB;var yD=yC+ArrowWidth*((xB-xA))/AB;
+     var xE=xC-ArrowWidth*(-(yB-yA))/AB;var yE=yC-ArrowWidth*((xB-xA))/AB;
+     // et on trace le segment [AB], et sa flèche:
+     ctx.beginPath();
+     ctx.moveTo(xA,yA);ctx.lineTo(xB,yB);
+     ctx.moveTo(xD,yD);ctx.lineTo(xB,yB);ctx.lineTo(xE,yE);
+     ctx.stroke();
+    }
+
+
   	redraw(){
         this.ctx.fillStyle = "white";
         var w =  document.getElementById('viewport').width/60//Math.max(20, 20+gfx.textWidth(node.name));
         this.ctx.fillRect(0,0, this.canvas.width, this.canvas.height);  
         var pS = this.particleSystem;
         var decale = w * tailleCarre;
+        var that = this;
 		    this.particleSystem.eachEdge(function(edge, pt1, pt2){
                 if( pS.getNode(edge.data.enfant).data.active &&  pS.getNode(edge.data.parent).data.active){
+                    this.renderer.ctx.strokeStyle = "black";
+                    var dist = w;
                     if(di == 1 || pS.getNode(edge.data.parent).name != nodeSelectionne || pS.getNode(edge.data.parent).data.typeGenerique != "struct" || pS.getNode(edge.data.parent).data.pointeurs.length == 0){
-			            this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
-			            this.renderer.ctx.lineWidth = 1
-			            this.renderer.ctx.beginPath()
-			            this.renderer.ctx.moveTo(pt1.x - w/2, pt1.y - w/2)
-			            this.renderer.ctx.lineTo(pt2.x - w/2, pt2.y - w/2)
-                        this.renderer.ctx.stroke()
+                        this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
+                        var x1 = pt1.x;
+                        var x2 = pt2.x;
+                        var y1 = pt1.y;
+                        var y2 = pt2.y;
+                        if(pS.getNode(edge.data.enfant).name == nodeSelectionne && pS.getNode(edge.data.enfant).data.typeGenerique == "struct" && di == 0){
+                            if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                                x2 -= decale/2
+                            }
+                            else if(y1 > y2){
+                                y2 += decale/2;
+                            }
+                            else if(y1 < y2){
+                                y2 -= decale/2;
+                            }
+                            var pointX = x2;
+                            var pointY = y2;
+                        }
+                        else{
+                            var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+                            var pointX = x2 + ((x1-x2) * dist) /d
+                            var pointY = y2 + ((y1-y2) * dist) /d
+                        }
+                        that.Vecteur(this.renderer.ctx,pt1.x, pt1.y,pointX,pointY)
                     }
                     else{
-                        this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
-			            this.renderer.ctx.lineWidth = 1
-			            this.renderer.ctx.beginPath()
-			            this.renderer.ctx.moveTo(pt1.x - w/2 + decale, pt1.y - w/2)
-			            this.renderer.ctx.lineTo(pt2.x - w/2, pt2.y - w/2)
-                        this.renderer.ctx.stroke()
-                        decale+=w * tailleCarre;
+                        var compte = 0;
+                        pS.getNode(edge.data.parent).data.isPointer.forEach(element => {
+                            if(element){
+                                var x1 = pt1.x + decale * compte;
+                                var x2 = pt2.x;
+                                var y1 = pt1.y;
+                                var y2 = pt2.y;
+                                var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+                                var pointX = x2 + ((x1-x2) * dist) /d
+                                var pointY = y2 + ((y1-y2) * dist) /d
+                                var departX = x1
+                                var departY = pt1.y
+
+                                if(compte ==0 && departX > pointX){
+                                    departX -= decale/2
+                                }
+                                else if(compte == pS.getNode(edge.data.parent).data.isPointer.length-1 && departX < pointX){
+                                    departX += decale/2
+                                }
+                                else if(departY > pointY){
+                                    departY -= decale/2;
+                                }
+                                else if(departY < pointY){
+                                    departY += decale/2;
+                                }
+                                that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)
+                            }
+                            compte++;
+                        });
+                       
                     }
+
+                    //TROUVER COORD FLECHE
+                    
                 }
 		    })
 
@@ -49,37 +116,58 @@ class Renderer{
                     this.renderer.ctx.beginPath();
                     this.renderer.ctx.fillStyle = donneCouleur(node.name);
                     this.renderer.ctx.strokeStyle = donneCouleur(node.name);
-                    this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
+                    this.renderer.ctx.arc(pt.x,pt.y,w,0,2*Math.PI);
                     this.renderer.ctx.fill();
                     this.renderer.ctx.stroke();
-                    CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);   
+                    CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);   
                 }else{
                     if(node.data.typeGenerique == "struct"){
                         this.renderer.ctx.fillStyle = donneCouleur(node.name)
-                        this.renderer.ctx.fillRect(0, listeCarre[0].e5,listeCarre[0].e4 * 2,listeCarre[0].e5 * 14)
-                        CreerTexteNonCentre(this.renderer.ctx,0,listeCarre[0].e5 * 2,listeCarre[0].e5/4,"Arial","black",node.name,1,listeCarre[0].e4 * 2); 
-                    }
-                    if(node.data.typeGenerique == "struct" && node.data.pointeurs.length > 0){
-                        CreerRectangle(this.renderer.ctx,pt.x - w/2,pt.y - w/2,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
-                        var pX = pt.x  - w/2 + w*tailleCarre
+                        this.renderer.ctx.fillRect(listeCarre[0].e4 * 13,0,listeCarre[0].e4 * 2,listeCarre[0].e5 * 15)
+                        CreerTexteNonCentre(this.renderer.ctx,listeCarre[0].e4 * 13,listeCarre[0].e5 * 1.2,listeCarre[0].e5/4,"Arial","black",node.name,1,listeCarre[0].e4 * 2); 
+
+                        var pX = pt.x
                         var compt = 0;
-                        var t = node.name.split("\n")[1].split(":")[1];
-                        CreerText(this.renderer.ctx,pt.x - w/2,pt.y-w/2,Math.max(w * tailleCarre/t.length,7),"Arial","black",t);  
-                        node.data.pointeurs.forEach(el => {
-                            CreerRectangle(this.renderer.ctx,pX,pt.y - w/2,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
-                            var text = (node.data.nomsPointeurs[compt])?node.data.nomsPointeurs[compt]:"null"
-                            CreerText(this.renderer.ctx,pX,pt.y-w/2,Math.max(w * tailleCarre/text.length,7),"Arial","black",text);  
-                            compt++;
+                        //console.log(node.data.champs[0])
+                        node.data.champs.forEach(element => {
+                            CreerRectangle(this.renderer.ctx,pX ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2); 
+                            
+                            var text = element.value;
+                            if(element.is_pointer)text = element.field_name;
+                            CreerText(this.renderer.ctx,pX,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text); 
+                            compt++; 
+
                             pX += w*tailleCarre
-                        });         
-                    }
+                        });
+
+
+                        if(false){
+
+                            CreerRectangle(this.renderer.ctx,pt.x ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
+                            var pX = pt.x  + w*tailleCarre
+                            var compt = 0;
+                            var t = node.name.split("\n")[1].split(":")[1];
+                            CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * tailleCarre/t.length,7),"Arial","black",t);  
+    
+                            
+                            node.data.pointeurs.forEach(el => {
+                                CreerRectangle(this.renderer.ctx,pX,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
+                                var text = (node.data.nomsPointeurs[compt][2])?node.data.nomsPointeurs[compt][2]:"null"
+                                CreerText(this.renderer.ctx,pX,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text);  
+                                compt++;
+                                pX += w*tailleCarre
+                            });    
+                            
+                            
+                        }
+                    }                              
                     else{
                         this.renderer.ctx.fillStyle = donneCouleur(node.name)
                         this.renderer.ctx.beginPath();
-                        this.renderer.ctx.arc(pt.x-w/2,pt.y-w/2,w,0,2*Math.PI);
+                        this.renderer.ctx.arc(pt.x,pt.y,w,0,2*Math.PI);
                         this.renderer.ctx.fill();
                         this.renderer.ctx.stroke();
-                        CreerText(this.renderer.ctx,pt.x-w/2,pt.y-w/2,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);  
+                        CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);  
                     }
                 }
             }
@@ -115,18 +203,6 @@ class Renderer{
                     }compte++;
                 });
            }
-        
-        //les "fleches"
-        /*
-        this.particleSystem.eachEdge(function(edge, pt1, pt2){
-            var w = 15
-			this.renderer.ctx.strokeStyle =  "rgba(255,0,0, .333)" 
-			this.renderer.ctx.beginPath()
-			this.renderer.ctx.arc(pt1.x-w/2,pt1.y-w/2,w,0,2*Math.PI);
-            this.renderer.ctx.fill();
-            this.renderer.ctx.stroke()
-        })
-        */
 		
     };
     resize(){
@@ -163,8 +239,12 @@ class Renderer{
             if (dragged && dragged.node !== null && dragged.node.data.active){
               dragged.node.fixed = true;
               nodeSelectionne = dragged.node.name;
+              if(di == 0 && etat == 1 && dragged.node.data.typeGenerique != "array")versTableau();
               if(dragged.node.data.tableau != undefined){
                   nodeTab = dragged.node;
+                  if(di == 0){
+                      versTableau();
+                  }
               }
             }
 			canvas.addEventListener("mousemove", handler.dragged); 
@@ -192,6 +272,7 @@ class Renderer{
             return false
           }
         }
+        
 		// start listening
 		canvas.addEventListener("mousedown", handler.clicked); 
       }
@@ -228,7 +309,7 @@ function donneCouleur(nom){
 /////////////////////////////TRAITEMENT/////////////////////////
 
 class noeud{
-    constructor(adresse,type,contenu,symbol_name,tableau,typeGenerique){
+    constructor(adresse,type,contenu,symbol_name,tableau,typeGenerique,champs){
         //this.marque = false;
         //this.pose = false;
         //this.numCycle = [];
@@ -243,6 +324,7 @@ class noeud{
         this.tableau = tableau;7
         this.typeGenerique = typeGenerique;
         this.nomsPointeurs = []
+        this.champs = champs
     }
     addEnfant(nouveauNoeud,nomP){
         this.enfants.push(nouveauNoeud);
@@ -323,6 +405,14 @@ function ouvrirJSON(sys){
                         "type": "uint32_t",
                         "size": 4,
                         "value": "(uint32_t) 0x5555557566e4: 2500"
+                    },
+                    {
+                        "field_name": "pointeur",
+                        "bitpos": 500,
+                        "type": "struct salarie **",
+                        "size": 4,
+                        "value": "(uint32_t) 0x5555557566e4: 2500",
+                        "is_pointer" : true
                     }
                 ]
             },
@@ -349,13 +439,131 @@ function ouvrirJSON(sys){
                 "type": "pointer",
                 "target": "0x5555557566b0",
                 "target_type": "struct salarie"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdca8",
+                    "symbol_name": "tab",
+                    "type": "uint32_t *",
+                    "raw_type": "uint32_t *",
+                    "size": 8
+                },
+                "type": "array",
+                "dynamic": true,
+                "element_type": "uint32_t",
+                "element_size": 4,
+                "n_elements": 100,
+                "elements": [
+                    "210",
+                    "280",
+                    "315",
+                    "266",
+                    "181",
+                    "9",
+                    "487",
+                    "486",
+                    "6",
+                    "276",
+                    "16",
+                    "39",
+                    "196",
+                    "60",
+                    "348",
+                    "14",
+                    "254",
+                    "182",
+                    "211",
+                    "376",
+                    "323",
+                    "40",
+                    "318",
+                    "326",
+                    "80",
+                    "328",
+                    "42",
+                    "67",
+                    "192",
+                    "55",
+                    "92",
+                    "474",
+                    "371",
+                    "151",
+                    "258",
+                    "464",
+                    "11",
+                    "103",
+                    "412",
+                    "449",
+                    "345",
+                    "129",
+                    "76",
+                    "180",
+                    "248",
+                    "13",
+                    "421",
+                    "158",
+                    "69",
+                    "300",
+                    "430",
+                    "297",
+                    "355",
+                    "224",
+                    "59",
+                    "51",
+                    "397",
+                    "82",
+                    "288",
+                    "136",
+                    "252",
+                    "246",
+                    "154",
+                    "269",
+                    "99",
+                    "109",
+                    "285",
+                    "289",
+                    "160",
+                    "137",
+                    "49",
+                    "384",
+                    "226",
+                    "502",
+                    "334",
+                    "286",
+                    "453",
+                    "234",
+                    "410",
+                    "418",
+                    "374",
+                    "330",
+                    "0",
+                    "227",
+                    "314",
+                    "459",
+                    "35",
+                    "477",
+                    "142",
+                    "402",
+                    "292",
+                    "463",
+                    "385",
+                    "389",
+                    "339",
+                    "408",
+                    "167",
+                    "168",
+                    "209",
+                    "455",
+                    "157"
+                ],
+                "starting_address": "0x555555756260"
             }
         ],
         "edges": [
             [
                 "0x5555557566b0",
                 "0x7fffffffdc78",
-                null
+                "pointeur"
             ],
             [
                 "0x7fffffffdc80",
@@ -396,7 +604,7 @@ function creerNoeud(data){
             contenu = element.base.symbol_name + "\ntype: "+element.base.raw_type+"\nvaleur: "+element.value;
         }
         var type = element.base.type
-        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements,element.type))
+        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements,element.type,element.fields))
     });
 
     //la liste est créé, il va falloir maintenant creer les structures
@@ -408,10 +616,12 @@ function creerNoeud(data){
                 if(n.adresse == element[0])noeud1 = n;
                 else if(n.adresse == element[1])noeud2 = n;
             });
-            noeud1.addEnfant(noeud2,element[2]);
+
+            noeud1.addEnfant(noeud2,element);
             noeud2.addParent(noeud1);
             
         }
+
     });
     return listeNoeud;
 }
@@ -453,7 +663,16 @@ function creerNode(sys,liste){
             symb =  element.adresse;
         }    
        
-        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau,active:true,typeGenerique:element.typeGenerique,pointeurs:element.enfants,nomsPointeurs:element.nomsPointeurs});
+        var isPointer = []
+        if(element.champs){
+        element.champs.forEach(e => {
+            if(e.is_pointer){
+                isPointer.push(true);
+            }
+            else isPointer.push(false);
+        });
+        }
+        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau,active:true,typeGenerique:element.typeGenerique,pointeurs:element.enfants,nomsPointeurs:element.nomsPointeurs,champs:element.champs,isPointer:isPointer});
     });
 
 	liste.forEach(element => {
