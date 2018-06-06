@@ -1,5 +1,10 @@
 var etat = 0;
 var tailleCarre = 2.5
+var compteIter = -1;
+var position = 0;
+var tailleProgramme = undefined;
+var bloc = false;
+
 
 class Renderer{
 	constructor(canvas,arbor){
@@ -33,7 +38,35 @@ class Renderer{
      ctx.moveTo(xD,yD);ctx.lineTo(xB,yB);ctx.lineTo(xE,yE);
      ctx.stroke();
     }
-
+    VecteurCourbe(ctx,xA,yA,xB,yB,ArrowLength,ArrowWidth) {
+        if (ArrowLength === undefined) {ArrowLength=10;}
+        if (ArrowWidth === undefined) {ArrowWidth=8;}
+        ctx.lineCap="round";
+        var coeff = 1
+        if(xA < xB)coeff = -1
+        var cp1x = Math.abs(xA + xB) / 2;
+        var cp1y = Math.abs(yA + yB) / 2;
+        cp1x += Math.abs(yA - yB)/2 * coeff;
+        cp1y += Math.abs(xA - xB)/2 * -coeff;
+        console.log(cp1x)
+        // Calculs des coordonnées des points C, D et E
+         var AB=this.Norm(cp1x,cp1y,xB,yB);
+         var xC=xB+ArrowLength*(cp1x-xB)/AB;
+         var yC=yB+ArrowLength*(cp1y-yB)/AB;
+         var xD=xC+ArrowWidth*(-(yB-cp1y))/AB;
+         var yD=yC+ArrowWidth*((xB-cp1x))/AB;
+         var xE=xC-ArrowWidth*(-(yB-cp1y))/AB;
+         var yE=yC-ArrowWidth*((xB-cp1x))/AB;
+         // et on trace le segment [AB], et sa flèche:
+         ctx.beginPath();
+         ctx.moveTo(xA,yA);
+         //ctx.lineTo(xB,yB);
+         ctx.quadraticCurveTo(cp1x, cp1y, xB, yB)
+         ctx.moveTo(xD,yD);
+         ctx.lineTo(xB,yB);
+         ctx.lineTo(xE,yE);
+         ctx.stroke();
+        }
 
   	redraw(){
         this.ctx.fillStyle = "white";
@@ -46,8 +79,16 @@ class Renderer{
                 if( pS.getNode(edge.data.enfant).data.active &&  pS.getNode(edge.data.parent).data.active){
                     this.renderer.ctx.strokeStyle = "black";
                     var dist = w;
-                    if(di == 1 || pS.getNode(edge.data.parent).name != nodeSelectionne || pS.getNode(edge.data.parent).data.typeGenerique != "struct" || pS.getNode(edge.data.parent).data.pointeurs.length == 0){
-                        this.renderer.ctx.strokeStyle = (edge.data.double) ? "rgba(255,0,0, .333)" : donneCouleur(edge.data.parent)
+                    if(di == 1 || pS.getNode(edge.data.parent).name != nodeSelectionne || pS.getNode(edge.data.parent).data.typeGenerique != "struct"){
+                        if(pS.getNode(edge.data.parent) == pS.getNode(edge.data.enfant)){//on pointe sur sois meme
+                            this.renderer.ctx.strokeStyle = donneCouleur(edge.data.parent)
+                            this.renderer.ctx.beginPath();
+                            this.renderer.ctx.arc(pt1.x - dist, pt1.y + dist, dist, 0, Math.PI * 1.5, false); 
+                            this.renderer.ctx.stroke();
+                            that.Vecteur(this.renderer.ctx,pt1.x - dist/2 - 11,pt1.y,pt1.x - dist/2 - 10,pt1.y)
+                        }
+                        else{
+                        this.renderer.ctx.strokeStyle = donneCouleur(edge.data.parent)
                         var x1 = pt1.x;
                         var x2 = pt2.x;
                         var y1 = pt1.y;
@@ -72,41 +113,37 @@ class Renderer{
                         }
                         that.Vecteur(this.renderer.ctx,pt1.x, pt1.y,pointX,pointY)
                     }
-                    else{
-                        var compte = 0;
-                        pS.getNode(edge.data.parent).data.isPointer.forEach(element => {
-                            if(element){
-                                var x1 = pt1.x + decale * compte;
-                                var x2 = pt2.x;
-                                var y1 = pt1.y;
-                                var y2 = pt2.y;
-                                var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
-                                var pointX = x2 + ((x1-x2) * dist) /d
-                                var pointY = y2 + ((y1-y2) * dist) /d
-                                var departX = x1
-                                var departY = pt1.y
-
-                                if(compte ==0 && departX > pointX){
-                                    departX -= decale/2
-                                }
-                                else if(compte == pS.getNode(edge.data.parent).data.isPointer.length-1 && departX < pointX){
-                                    departX += decale/2
-                                }
-                                else if(departY > pointY){
-                                    departY -= decale/2;
-                                }
-                                else if(departY < pointY){
-                                    departY += decale/2;
-                                }
-                                that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)
-                            }
-                            compte++;
-                        });
-                       
                     }
+                    else{      
+                        var x1 = pt1.x + decale * edge.data.compte_field;
+                        var x2 = pt2.x;
+                        var y1 = pt1.y;
+                        var y2 = pt2.y;
+                        var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+                        var pointX = x2 + ((x1-x2) * dist) /d
+                        var pointY = y2 + ((y1-y2) * dist) /d
+                        var departX = x1
+                        var departY = pt1.y
 
-                    //TROUVER COORD FLECHE
-                    
+                        if(edge.data.compte_field ==0 && departX > pointX){
+                            departX -= decale/2
+                        }
+                        else if(edge.data.compte_field == edge.data.max_field && departX < pointX){
+                            departX += decale/2
+                        }
+                        else if(departY > pointY){
+                            departY -= decale/2;
+                        }
+                        else if(departY < pointY){
+                            departY += decale/2;
+                        }
+                        if(pS.getNode(edge.data.parent) == pS.getNode(edge.data.enfant)){
+                            that.VecteurCourbe(this.renderer.ctx,x1, y1 - decale/2,x2,y2 - decale/2)
+                        }
+                        else{
+                            that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)
+                            }
+                        }                   
                 }
 		    })
 
@@ -115,59 +152,41 @@ class Renderer{
                 if (node.name != nodeSelectionne || di == 1){
                     this.renderer.ctx.beginPath();
                     this.renderer.ctx.fillStyle = donneCouleur(node.name);
-                    this.renderer.ctx.strokeStyle = donneCouleur(node.name);
                     this.renderer.ctx.arc(pt.x,pt.y,w,0,2*Math.PI);
                     this.renderer.ctx.fill();
-                    this.renderer.ctx.stroke();
-                    CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);   
+                    CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * 1.5/node.data.nom.length,8),"Arial","black",node.data.nom);   
                 }else{
-                    if(node.data.typeGenerique == "struct"){
+                    if(node.data.typeGenerique == "scalar"){
+                        CreerRectangle(this.renderer.ctx,pt.x ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2); 
+                        var text = node.data.valeurScalaire;
+                        CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text,0,w * tailleCarre);
+                    }
+                    else if(node.data.typeGenerique == "struct"){
                         this.renderer.ctx.fillStyle = donneCouleur(node.name)
-                        this.renderer.ctx.fillRect(listeCarre[0].e4 * 13,0,listeCarre[0].e4 * 2,listeCarre[0].e5 * 15)
-                        CreerTexteNonCentre(this.renderer.ctx,listeCarre[0].e4 * 13,listeCarre[0].e5 * 1.2,listeCarre[0].e5/4,"Arial","black",node.name,1,listeCarre[0].e4 * 2); 
-
                         var pX = pt.x
-                        var compt = 0;
-                        //console.log(node.data.champs[0])
                         node.data.champs.forEach(element => {
                             CreerRectangle(this.renderer.ctx,pX ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2); 
                             
                             var text = element.value;
+                            var textname = element.field_name;
                             if(element.is_pointer)text = element.field_name;
-                            CreerText(this.renderer.ctx,pX,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text); 
-                            compt++; 
-
+                            //le nom du champs
+                            else{
+                                CreerTexteNonCentre(this.renderer.ctx,pX - (w * tailleCarre/2) * 0.9,pt.y - (w * tailleCarre/2)*0.8,Math.max(w * tailleCarre/textname.length,8),"Arial","black",textname,0,w * tailleCarre); 
+                            }
+                            //le champs
+                            var letext = w * tailleCarre/text.length;
+                            if(text.length == 1)letext *= 0.8
+                            CreerText(this.renderer.ctx,pX,pt.y,Math.max(letext,7),"Arial","black",text,0,w * tailleCarre); 
                             pX += w*tailleCarre
                         });
-
-
-                        if(false){
-
-                            CreerRectangle(this.renderer.ctx,pt.x ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
-                            var pX = pt.x  + w*tailleCarre
-                            var compt = 0;
-                            var t = node.name.split("\n")[1].split(":")[1];
-                            CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * tailleCarre/t.length,7),"Arial","black",t);  
-    
-                            
-                            node.data.pointeurs.forEach(el => {
-                                CreerRectangle(this.renderer.ctx,pX,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2);    
-                                var text = (node.data.nomsPointeurs[compt][2])?node.data.nomsPointeurs[compt][2]:"null"
-                                CreerText(this.renderer.ctx,pX,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text);  
-                                compt++;
-                                pX += w*tailleCarre
-                            });    
-                            
-                            
-                        }
                     }                              
                     else{
                         this.renderer.ctx.fillStyle = donneCouleur(node.name)
                         this.renderer.ctx.beginPath();
                         this.renderer.ctx.arc(pt.x,pt.y,w,0,2*Math.PI);
                         this.renderer.ctx.fill();
-                        this.renderer.ctx.stroke();
-                        CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w/node.data.nom.length,5),"Arial","black",node.data.nom);  
+                        CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * 1.5/node.data.nom.length,8),"Arial","black",node.data.nom);  
                     }
                 }
             }
@@ -293,8 +312,6 @@ var listeCouleur = [];//chaque structure
 var listeCouleurAssocier  = [];//generer aleatoirement
 var listeCouleurActive = []; //permet de savoit si tel ou tel couleur est active
 
-
-
 ///////FONCTIONS ARBOR//////////////
 
 function donneCouleur(nom){
@@ -309,10 +326,7 @@ function donneCouleur(nom){
 /////////////////////////////TRAITEMENT/////////////////////////
 
 class noeud{
-    constructor(adresse,type,contenu,symbol_name,tableau,typeGenerique,champs){
-        //this.marque = false;
-        //this.pose = false;
-        //this.numCycle = [];
+    constructor(adresse,type,contenu,symbol_name,tableau,typeGenerique,champs,valeurScalaire){
         this.parents = []
         this.nbParents = 0;
         this.enfants = []
@@ -325,6 +339,7 @@ class noeud{
         this.typeGenerique = typeGenerique;
         this.nomsPointeurs = []
         this.champs = champs
+        this.valeurScalaire = valeurScalaire;
     }
     addEnfant(nouveauNoeud,nomP){
         this.enfants.push(nouveauNoeud);
@@ -351,229 +366,235 @@ class carre{
 }
 listeCarre = [];
 
-
-
 function reload(){
     clear();
-	ouvrirJSON(sys);
+	ouvrirJSON(sys,lastMessage);
 }
 
-function ouvrirJSON(sys){
+function ouvrirJSON(sys,message){
+    sys.eachEdge(function(edge, pt1, pt2){
+        sys.pruneEdge(edge);
+    })
+    sys.eachNode(function(node, pt){
+        sys.pruneNode(node);
+    })
+    listeCouleur = [];//chaque structure
+    listeCouleurAssocier  = [];//generer aleatoirement
+    listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"]
+    //var data = JSON.parse(message);
     var data = {
         "nodes": [
             {
                 "base": {
-                    "address": "0x5555557566b0",
+                    "address": "0x555555756260",
                     "symbol_name": null,
-                    "type": "struct salarie",
-                    "raw_type": "struct salarie",
-                    "size": 56
+                    "type": "struct A",
+                    "raw_type": "struct A",
+                    "size": 16
                 },
                 "type": "struct",
                 "fields": [
                     {
-                        "field_name": "prenom",
+                        "field_name": "test",
                         "bitpos": 0,
-                        "type": "char [16]",
-                        "size": 16,
-                        "value": "John"
+                        "type": "int",
+                        "size": 8,
+                        "value": "88",
+                        "is_pointer": false
                     },
                     {
-                        "field_name": "nom",
-                        "bitpos": 128,
-                        "type": "char [32]",
-                        "size": 32,
-                        "value": "Doe"
+                        "field_name": "B",
+                        "bitpos": 0,
+                        "type": "char *",
+                        "size": 8,
+                        "value": "0x7fffffffe125",
+                        "is_pointer": true
                     },
                     {
-                        "field_name": "age",
-                        "bitpos": 384,
-                        "type": "uint8_t",
-                        "size": 1,
-                        "value": "(uint8_t) 0x5555557566e0: 34 '\"'"
-                    },
-                    {
-                        "field_name": "anciennete",
-                        "bitpos": 392,
-                        "type": "uint8_t",
-                        "size": 1,
-                        "value": "(uint8_t) 0x5555557566e1: 10 '\\n'"
-                    },
-                    {
-                        "field_name": "salaire",
-                        "bitpos": 416,
-                        "type": "uint32_t",
-                        "size": 4,
-                        "value": "(uint32_t) 0x5555557566e4: 2500"
-                    },
-                    {
-                        "field_name": "pointeur",
-                        "bitpos": 500,
-                        "type": "struct salarie **",
-                        "size": 4,
-                        "value": "(uint32_t) 0x5555557566e4: 2500",
-                        "is_pointer" : true
+                        "field_name": "next",
+                        "bitpos": 64,
+                        "type": "struct A *",
+                        "size": 8,
+                        "value": "0x555555756280",
+                        "is_pointer": true
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x7fffffffdc78",
-                    "symbol_name": "s1",
-                    "type": "struct salarie *",
-                    "raw_type": "struct salarie *",
-                    "size": 8
+                    "address": "0x5555557562c0",
+                    "symbol_name": null,
+                    "type": "struct A",
+                    "raw_type": "struct A",
+                    "size": 16
                 },
-                "type": "pointer",
-                "target": "0x0",
-                "target_type": "struct salarie"
+                "type": "struct",
+                "fields": [
+                    {
+                        "field_name": "B",
+                        "bitpos": 0,
+                        "type": "char *",
+                        "size": 8,
+                        "value": "0x7fffffffe14f",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "next",
+                        "bitpos": 64,
+                        "type": "struct A *",
+                        "size": 8,
+                        "value": "0x0",
+                        "is_pointer": true
+                    }
+                ]
             },
             {
                 "base": {
-                    "address": "0x7fffffffdc80",
-                    "symbol_name": "s2",
-                    "type": "struct salarie *",
-                    "raw_type": "struct salarie *",
+                    "address": "0x7fffffffdc30",
+                    "symbol_name": "argv",
+                    "type": "char **",
+                    "raw_type": "char **",
                     "size": 8
                 },
                 "type": "pointer",
-                "target": "0x5555557566b0",
-                "target_type": "struct salarie"
+                "target": "0x7fffffffdd48",
+                "target_type": "char *"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdca8",
-                    "symbol_name": "tab",
-                    "type": "uint32_t *",
-                    "raw_type": "uint32_t *",
+                    "address": "0x7fffffffdc3c",
+                    "symbol_name": "argc",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "type": "scalar",
+                "value": "4"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdc50",
+                    "symbol_name": "T1",
+                    "type": "struct A *",
+                    "raw_type": "struct A *",
                     "size": 8
                 },
-                "type": "array",
-                "dynamic": true,
-                "element_type": "uint32_t",
-                "element_size": 4,
-                "n_elements": 100,
-                "elements": [
-                    "210",
-                    "280",
-                    "315",
-                    "266",
-                    "181",
-                    "9",
-                    "487",
-                    "486",
-                    "6",
-                    "276",
-                    "16",
-                    "39",
-                    "196",
-                    "60",
-                    "348",
-                    "14",
-                    "254",
-                    "182",
-                    "211",
-                    "376",
-                    "323",
-                    "40",
-                    "318",
-                    "326",
-                    "80",
-                    "328",
-                    "42",
-                    "67",
-                    "192",
-                    "55",
-                    "92",
-                    "474",
-                    "371",
-                    "151",
-                    "258",
-                    "464",
-                    "11",
-                    "103",
-                    "412",
-                    "449",
-                    "345",
-                    "129",
-                    "76",
-                    "180",
-                    "248",
-                    "13",
-                    "421",
-                    "158",
-                    "69",
-                    "300",
-                    "430",
-                    "297",
-                    "355",
-                    "224",
-                    "59",
-                    "51",
-                    "397",
-                    "82",
-                    "288",
-                    "136",
-                    "252",
-                    "246",
-                    "154",
-                    "269",
-                    "99",
-                    "109",
-                    "285",
-                    "289",
-                    "160",
-                    "137",
-                    "49",
-                    "384",
-                    "226",
-                    "502",
-                    "334",
-                    "286",
-                    "453",
-                    "234",
-                    "410",
-                    "418",
-                    "374",
-                    "330",
-                    "0",
-                    "227",
-                    "314",
-                    "459",
-                    "35",
-                    "477",
-                    "142",
-                    "402",
-                    "292",
-                    "463",
-                    "385",
-                    "389",
-                    "339",
-                    "408",
-                    "167",
-                    "168",
-                    "209",
-                    "455",
-                    "157"
-                ],
-                "starting_address": "0x555555756260"
+                "type": "pointer",
+                "target": "0x555555756260",
+                "target_type": "struct A"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdc58",
+                    "symbol_name": "T2",
+                    "type": "struct A *",
+                    "raw_type": "struct A *",
+                    "size": 8
+                },
+                "type": "pointer",
+                "target": "0x5555557562c0",
+                "target_type": "struct A"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdd48",
+                    "symbol_name": null,
+                    "type": "char *",
+                    "raw_type": "char *",
+                    "size": 8
+                },
+                "type": "pointer",
+                "target": "0x7fffffffe125",
+                "target_type": "char"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffe125",
+                    "symbol_name": null,
+                    "type": "char",
+                    "raw_type": "char",
+                    "size": 1
+                },
+                "type": "scalar",
+                "value": "47 '/'"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffe14f",
+                    "symbol_name": null,
+                    "type": "char",
+                    "raw_type": "char",
+                    "size": 1
+                },
+                "type": "scalar",
+                "value": "50 '2'"
             }
         ],
         "edges": [
             [
-                "0x5555557566b0",
-                "0x7fffffffdc78",
-                "pointeur"
+                "0x555555756260",
+                "0x7fffffffe125",
+                "B"
             ],
             [
-                "0x7fffffffdc80",
-                "0x5555557566b0",
+                "0x5555557562c0",
+                "0x7fffffffe14f",
+                "B"
+            ],
+            [
+                "0x5555557562c0",
+                null,
+                "next"
+            ],
+            [
+                "0x7fffffffdc30",
+                "0x7fffffffdd48",
+                null
+            ],
+            [
+                "0x7fffffffdc50",
+                "0x555555756260",
+                null
+            ],
+            [
+                "0x7fffffffdc58",
+                "0x5555557562c0",
+                null
+            ],
+            [
+                "0x7fffffffdd48",
+                "0x7fffffffe125",
                 null
             ]
+        ],
+        "stack": [
+            {
+                "name": "main",
+                "variables": [
+                    {
+                        "name": "T2",
+                        "address": "0x7fffffffdc58"
+                    },
+                    {
+                        "name": "T1",
+                        "address": "0x7fffffffdc50"
+                    },
+                    {
+                        "name": "argc",
+                        "address": "0x7fffffffdc3c"
+                    },
+                    {
+                        "name": "argv",
+                        "address": "0x7fffffffdc30"
+                    }
+                ]
+            }
         ]
-    };
-	retour = creerNoeud(data);  
-	creerNode(sys,retour) 
+    }
+    
+    
+	retour = creerNoeud(data);
+	creerNode(sys,retour)
 }
 
 
@@ -604,7 +625,7 @@ function creerNoeud(data){
             contenu = element.base.symbol_name + "\ntype: "+element.base.raw_type+"\nvaleur: "+element.value;
         }
         var type = element.base.type
-        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements,element.type,element.fields))
+        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements,element.type,element.fields,element.value))
     });
 
     //la liste est créé, il va falloir maintenant creer les structures
@@ -617,6 +638,8 @@ function creerNoeud(data){
                 else if(n.adresse == element[1])noeud2 = n;
             });
 
+            if(!noeud2)noeud2 = noeud1
+            if(!noeud1)noeud1 = noeud2
             noeud1.addEnfant(noeud2,element);
             noeud2.addParent(noeud1);
             
@@ -627,7 +650,7 @@ function creerNoeud(data){
 }
 
 
-var listeCol = ["red","cyan","green","yellow","pink","light blue"]
+var listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"]
 function couleurRandom(){
     if(listeCol.length>0){
         return listeCol.shift();
@@ -662,29 +685,21 @@ function creerNode(sys,liste){
         else {
             symb =  element.adresse;
         }    
-       
-        var isPointer = []
-        if(element.champs){
-        element.champs.forEach(e => {
-            if(e.is_pointer){
-                isPointer.push(true);
-            }
-            else isPointer.push(false);
-        });
-        }
-        sys.addNode(element.contenu,{shape:'dot',nom:symb,tableau:element.tableau,active:true,typeGenerique:element.typeGenerique,pointeurs:element.enfants,nomsPointeurs:element.nomsPointeurs,champs:element.champs,isPointer:isPointer});
+        sys.addNode(element.contenu,{nom:symb,tableau:element.tableau,active:true,typeGenerique:element.typeGenerique,pointeurs:[],nomsPointeurs:element.nomsPointeurs,champs:element.champs,valeurScalaire:element.valeurScalaire});
     });
 
 	liste.forEach(element => {
 		element.enfants.forEach(enfant => {
-            //Creation des nodes
-            let double = false;
-            enfant.enfants.forEach(parent => {
-                if(parent == element){
-                    double = true;
+            var pos = 0;
+            var maxfield = 0;
+            if(element.champs != undefined){
+                for(let i = 0; i<element.champs.length;i++){
+                    if(element.champs[i].is_pointer && element.champs[i].value == enfant.adresse)pos = i;
                 }
-            });
-			sys.addEdge(element.contenu,enfant.contenu,{double:double,parent:element.contenu,enfant:enfant.contenu});
+                maxfield = element.champs.length-1;
+                
+            }
+            sys.addEdge(element.contenu,enfant.contenu,{parent:element.contenu,enfant:enfant.contenu,compte_field:pos,max_field:maxfield});
 		});
     });
 }
@@ -738,7 +753,7 @@ function CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur,bordure,taille
  * @param {any} couleur la couleur format "#000000"
  * @param {texte} texte le texte à ecrire
  */
-function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut){
+function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax){
     ctx.textAlign = "center";
     ctx.textBaseline="middle";
     ctx.font = Taille + "px " + police;
@@ -750,10 +765,37 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut){
         coordY -= Taille * (texte.split("\n").length/2) 
         if(num == 0)coordY += Taille/2;
     }
+   
+    if(tailleMax != undefined && tailleMax > 0){
+        var nbSaut = 0; 
+        texte.split("\n").forEach(element => {
+            if(element.length > tailleMax/Taille){
+                nbSaut+=(element.length/(tailleMax/Taille) << 0)
+            }
+        });
+
+        if(nbSaut%2 == 1 && nbSaut != 0)coordY-= (nbSaut/2 << 0) * Taille
+        else if(nbSaut != 0)coordY-= coordY-= ((nbSaut/2 << 0) + 0.5) * Taille
+    }
     texte.split("\n").forEach(element => {
         if(compte >= saut){
-        ctx.fillText(element,coordX,coordY); 
-        coordY+=Taille;
+        var val = "";
+        if(element.length > tailleMax/Taille){
+           for(let i = 0;i < element.length;i++){
+                if(val.length<tailleMax/Taille)val+=element[i];
+                else{
+                    ctx.fillText(val,coordX,coordY); 
+                    coordY+=Taille;
+                    val = "";
+                }
+           }
+           ctx.fillText(val,coordX,coordY); 
+            coordY+=Taille;
+        }
+        else{
+            ctx.fillText(element,coordX,coordY); 
+            coordY+=Taille;
+        }
         }compte++;
     });
 }
@@ -812,7 +854,7 @@ function CreerRectangleText(ctx,coordX,coordY,TailleX,TailleY,couleur,texte,poli
     var tailleMax = TailleX - 2;
     var tailleText = TailleY/(texte.length/3);
     if(tailleMax < tailleText)tailleText = tailleMax;
-    CreerText(ctx,coordX,coordY + tailleText/2 ,tailleText,police,"#000000",texte);
+    CreerText(ctx,coordX,coordY,tailleText,police,"#000000",texte);
 }
 
 function clear(){
@@ -829,6 +871,7 @@ document.getElementById("clickMe").onclick = depInfo;
 var di = 0;
 document.getElementById("versTableau").onclick = versTableau;
 document.getElementById("sliderTab").oninput = refresh;
+document.getElementById("dunno").onclick = reload;
 
 ///POSITIONNEMENT SLIDER
 document.getElementById("sliderTab").style.width = 0.8 * screen.height;
@@ -837,11 +880,6 @@ document.getElementById("sliderTab").value = 0;
 document.getElementById("sliderTab").style.top ="10px" 
 document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.8  + "px" 
 document.getElementById("sliderTab").style.visibility = "hidden"
-
-
-//TIMELINE
-document.getElementById("TimeLine").value = 0;
-document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.99;
 
 function versTableau(){
     if(nodeTab == null)return;
@@ -868,5 +906,142 @@ function depInfo(){
     else {di = 0; document.getElementById("clickMe").value = "Deplacement"}
 }
 
-//LANCEMENT
-ouvrirJSON(sys);
+//TIMELINE
+
+document.getElementById("TimeLine").value = 0;
+document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.99;
+document.getElementById("TimeLine").oninput = timeLine
+
+document.getElementById("plus1").onclick = plus1;
+document.getElementById("plus5").onclick = plus5;
+document.getElementById("plus10").onclick = plus10;
+document.getElementById("moins1").onclick = moins1;
+
+
+function plus1(){
+    if(position == 0)return;
+    if(bloc)return;
+    document.getElementById("moins1").style.backgroundColor = "red"
+    if(position<listeJSON.length){
+        position++;
+        ouvrirJSON(sys,listeJSON[position-1]);
+        if(tailleProgramme && position+10>=tailleProgramme){
+            document.getElementById("plus10").style.backgroundColor = "#AAAAAA";
+        }
+        if(tailleProgramme && position+5>=tailleProgramme){
+            document.getElementById("plus5").style.backgroundColor = "#AAAAAA";
+        }
+        if(tailleProgramme && position==tailleProgramme){
+            document.getElementById("plus1").style.backgroundColor = "#AAAAAA";
+        }
+    }
+    else if(fin){
+        return;
+    }else{
+        compteIter = 1;
+        bloc = true;
+        connection.send("n");
+        connection.send("print_memory -j");
+        sys.renderer.redraw()
+    }
+    document.getElementById("pas").innerHTML = "Pas actuel : " + position;
+    document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+}
+
+function plus5(){
+    plus(5)
+}
+
+function plus10(){
+    plus(10)
+}
+
+function plus(nb){
+    if(position == 0)return;
+    if(bloc)return;
+    if(tailleProgramme && position+nb<=tailleProgramme){
+        position+=nb;
+        ouvrirJSON(sys,listeJSON[position-1]);
+        if(tailleProgramme && position+10>=tailleProgramme){
+            document.getElementById("plus10").style.backgroundColor = "#AAAAAA";
+        }
+        if(tailleProgramme && position+5>=tailleProgramme){
+            document.getElementById("plus5").style.backgroundColor = "#AAAAAA";
+        }
+        if(tailleProgramme && position==tailleProgramme){
+            document.getElementById("plus1").style.backgroundColor = "#AAAAAA";
+        }
+        document.getElementById("moins1").style.backgroundColor = "red"
+        document.getElementById("pas").innerHTML = "Pas actuel : " + position;
+        document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+    }
+    else if(fin)return;
+    else{
+        document.getElementById("moins1").style.backgroundColor = "red"
+        if(position+nb>=listeJSON.length && position<listeJSON.length){
+            nb -= (position+nb - listeJSON.length);
+        }
+        compteIter = nb;
+        var dep = 0;
+        bloc = true;
+        for(let i = dep;i < nb;i++){
+            connection.send("n");
+            connection.send("print_memory -j");
+        }
+        sys.renderer.redraw()
+    }
+}
+
+function moins1(){
+    if(position == 0)return;
+    if(bloc)return;
+    if(position>1){
+        position--;
+        ouvrirJSON(sys,listeJSON[position-1]);
+        sys.renderer.redraw()
+        if(position == 1)document.getElementById("moins1").style.backgroundColor = "#AAAAAA";
+    }
+    if(tailleProgramme && position+10<tailleProgramme){
+        document.getElementById("plus10").style.backgroundColor = "#4CAF50";
+    }
+    if(tailleProgramme && position+5<tailleProgramme){
+        document.getElementById("plus5").style.backgroundColor = "#4CAF50";
+    }
+    document.getElementById("plus1").style.backgroundColor = "#4CAF50";
+    document.getElementById("pas").innerHTML = "Pas actuel : " + position;
+    document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+}
+
+
+function timeLine(){
+    if(position != Math.round(document.getElementById("TimeLine").value) &&  Math.round(document.getElementById("TimeLine").value)!=0){
+        position = Math.round(document.getElementById("TimeLine").value);
+        ouvrirJSON(sys,listeJSON[position-1]);
+        if(tailleProgramme && position+10>=tailleProgramme){
+            document.getElementById("plus10").style.backgroundColor = "#AAAAAA";
+        }
+        else{
+            document.getElementById("plus10").style.backgroundColor = "#4CAF50";
+        }
+        if(tailleProgramme && position+5>=tailleProgramme){
+            document.getElementById("plus5").style.backgroundColor = "#AAAAAA";
+        }
+        else{
+            document.getElementById("plus5").style.backgroundColor = "#4CAF50";
+        }
+        if(tailleProgramme && position==tailleProgramme){
+            document.getElementById("plus1").style.backgroundColor = "#AAAAAA";
+        }
+        else{
+            document.getElementById("plus1").style.backgroundColor = "#4CAF50";
+        }
+        if(position > 1){
+            document.getElementById("moins1").style.backgroundColor = "red"
+        }
+        else{
+            document.getElementById("moins1").style.backgroundColor = "#AAAAAA"
+        }
+        document.getElementById("pas").innerHTML = "Pas actuel : " + position;
+        document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+    }
+}
