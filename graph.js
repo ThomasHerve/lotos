@@ -1,10 +1,20 @@
+/*******************************
+*                              *
+*  Lotos :Webclient for Moly   *
+*       by Thomas HERVE        *
+*                              *
+*                              *
+*******************************/
+
 var etat = 0;
 var tailleCarre = 2.5
 var compteIter = -1;
 var position = 0;
 var tailleProgramme = undefined;
 var bloc = false;
-
+var dataJSON;
+var w;
+var decale;
 
 class Renderer{
 	constructor(canvas,arbor){
@@ -48,7 +58,6 @@ class Renderer{
         var cp1y = Math.abs(yA + yB) / 2;
         cp1x += Math.abs(yA - yB)/2 * coeff;
         cp1y += Math.abs(xA - xB)/2 * -coeff;
-        console.log(cp1x)
         // Calculs des coordonnées des points C, D et E
          var AB=this.Norm(cp1x,cp1y,xB,yB);
          var xC=xB+ArrowLength*(cp1x-xB)/AB;
@@ -70,32 +79,94 @@ class Renderer{
 
   	redraw(){
         this.ctx.fillStyle = "white";
-        var w =  document.getElementById('viewport').width/60//Math.max(20, 20+gfx.textWidth(node.name));
+        w =  document.getElementById('viewport').width/60//Math.max(20, 20+gfx.textWidth(node.name));
         this.ctx.fillRect(0,0, this.canvas.width, this.canvas.height);  
         var pS = this.particleSystem;
-        var decale = w * tailleCarre;
+        decale = w * tailleCarre;
         var that = this;
 		    this.particleSystem.eachEdge(function(edge, pt1, pt2){
-                if( pS.getNode(edge.data.enfant).data.active &&  pS.getNode(edge.data.parent).data.active){
+                if(pS.getNode(edge.data.enfant).data.active && pS.getNode(edge.data.parent).data.active){
+                    //cas classique explosé
+                    var x1 = pt1.x;
+                    var x2 = pt2.x;
+                    var y1 = pt1.y;
+                    var y2 = pt2.y;
+                    var DEP = false;
+                    var courbe = false;
+                    //le cas ou on pointe de la pile vers un element encore dans arbor
+                    if(!pS.getNode(edge.data.parent).data.actifPile)
+                    {
+                        var Decalage = canvas.height/15;
+                        var Deployer = false;
+                        var totalBlocs = 0;
+                        DEP = true;
+                        listStack.forEach(element => {
+                            if(element.deplie){
+                                element.variables.forEach(variable => {
+                                    if(variable.address == pS.getNode(edge.data.parent).name)Deployer = true;
+                                    if(!Deployer)Decalage += canvas.height/15;
+                                    totalBlocs++;
+                                });
+                            }
+                            else if(!Deployer){
+                                Decalage += canvas.height/15;
+                                totalBlocs++;
+                            }else totalBlocs++;
+                        });
+                        if(Deployer){//le cas ou la frame est deplié, il faut donc tracer les fleches 
+                            x1 = canvas.width/15 + canvas.width/60;
+                            y1 = canvas.height/30 + Decalage - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,canvas.height/15);
+                            if(!pS.getNode(edge.data.enfant).data.actifPile){//le cas ou l'enfant est aussi dans la pile
+                                courbe = true;
+                                Decalage = canvas.height/15;
+                                var Deployer2 = false;
+                                totalBlocs = 0;
+                                listStack.forEach(element => {
+                                    if(element.deplie){
+                                        element.variables.forEach(variable => {
+                                            if(variable.address == pS.getNode(edge.data.enfant).name)Deployer2 = true;
+                                            if(!Deployer2)Decalage += canvas.height/15;
+                                            totalBlocs++;
+                                    });
+                                }
+                                else if(!Deployer){
+                                    Decalage += canvas.height/15;
+                                    totalBlocs++;
+                                }else totalBlocs++;
+                            });
+                            if(Deployer2){
+                                x2 = canvas.width/15 + canvas.width/60;
+                                y2 = canvas.height/15 + Decalage - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,canvas.height/15);
+                            }
+                            else{
+                                return;
+                            }
+                        }
+                        }else{
+                            return;
+                        }
+                    }
+                    /////////////////////////////////////////////////////////////////
+                    
                     this.renderer.ctx.strokeStyle = "black";
                     var dist = w;
-                    if(di == 1 || pS.getNode(edge.data.parent).name != nodeSelectionne || pS.getNode(edge.data.parent).data.typeGenerique != "struct"){
+                    if(!pS.getNode(edge.data.parent).data.deplie || pS.getNode(edge.data.parent).data.typeGenerique != "struct"){
                         if(pS.getNode(edge.data.parent) == pS.getNode(edge.data.enfant)){//on pointe sur sois meme
-                            this.renderer.ctx.strokeStyle = donneCouleur(edge.data.parent)
+                            this.renderer.ctx.strokeStyle = donneCouleur(pS.getNode(edge.data.parent).data.type)
                             this.renderer.ctx.beginPath();
-                            this.renderer.ctx.arc(pt1.x - dist, pt1.y + dist, dist, 0, Math.PI * 1.5, false); 
+                            this.renderer.ctx.arc(x1 - dist, y1 + dist, dist, 0, Math.PI * 1.5, false); 
                             this.renderer.ctx.stroke();
-                            that.Vecteur(this.renderer.ctx,pt1.x - dist/2 - 11,pt1.y,pt1.x - dist/2 - 10,pt1.y)
+                            that.Vecteur(this.renderer.ctx,x1 - dist/2 - 11,y1,x1 - dist/2 - 10,y1)
                         }
                         else{
-                        this.renderer.ctx.strokeStyle = donneCouleur(edge.data.parent)
-                        var x1 = pt1.x;
-                        var x2 = pt2.x;
-                        var y1 = pt1.y;
-                        var y2 = pt2.y;
-                        if(pS.getNode(edge.data.enfant).name == nodeSelectionne && pS.getNode(edge.data.enfant).data.typeGenerique == "struct" && di == 0){
+                        this.renderer.ctx.strokeStyle = donneCouleur(pS.getNode(edge.data.parent).data.type)
+                        
+                        if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string")){
                             if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 -= decale/2
+                            }
+                            else if( (pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string")&& x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                                x2 += decale/2
                             }
                             else if(y1 > y2){
                                 y2 += decale/2;
@@ -111,68 +182,92 @@ class Renderer{
                             var pointX = x2 + ((x1-x2) * dist) /d
                             var pointY = y2 + ((y1-y2) * dist) /d
                         }
-                        that.Vecteur(this.renderer.ctx,pt1.x, pt1.y,pointX,pointY)
+                        
+                        this.renderer.ctx.lineWidth = 1;
+                        if(courbe)that.VecteurCourbe(this.renderer.ctx,x1,y1,pointX,pointY)
+                        else that.Vecteur(this.renderer.ctx,x1,y1,pointX,pointY)
                     }
                     }
                     else{      
-                        var x1 = pt1.x + decale * edge.data.compte_field;
-                        var x2 = pt2.x;
-                        var y1 = pt1.y;
-                        var y2 = pt2.y;
-                        var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
-                        var pointX = x2 + ((x1-x2) * dist) /d
-                        var pointY = y2 + ((y1-y2) * dist) /d
+                        x1 = x1 + decale * edge.data.compte_field;
+                        if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive")){
+                            if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                                x2 -= decale/2
+                            }
+                            else if( pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" && x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                                x2 += decale/2
+                            }
+                            else if(y1 > y2){
+                                y2 += decale/2;
+                            }
+                            else if(y1 < y2){
+                                y2 -= decale/2;
+                            }
+                            var pointX = x2;
+                            var pointY = y2;
+                        }
+                        else{
+                            var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+                            var pointX = x2 + ((x1-x2) * dist) /d
+                            var pointY = y2 + ((y1-y2) * dist) /d
+                        }
                         var departX = x1
-                        var departY = pt1.y
-
-                        if(edge.data.compte_field ==0 && departX > pointX){
-                            departX -= decale/2
-                        }
-                        else if(edge.data.compte_field == edge.data.max_field && departX < pointX){
-                            departX += decale/2
-                        }
-                        else if(departY > pointY){
-                            departY -= decale/2;
-                        }
-                        else if(departY < pointY){
-                            departY += decale/2;
+                        var departY = y1
+                        if(DEP){
+                            if(edge.data.compte_field ==0 && departX > pointX){
+                                departX -= decale/2
+                            }
+                            else if(edge.data.compte_field == edge.data.max_field && departX < pointX){
+                                departX += decale/2
+                            }
+                            else if(departY > pointY){
+                                departY -= decale/2;
+                            }
+                            else if(departY < pointY){
+                                departY += decale/2;
+                            }
                         }
                         if(pS.getNode(edge.data.parent) == pS.getNode(edge.data.enfant)){
+                            this.renderer.ctx.lineWidth = 1;
                             that.VecteurCourbe(this.renderer.ctx,x1, y1 - decale/2,x2,y2 - decale/2)
                         }
                         else{
-                            that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)
+                            this.renderer.ctx.lineWidth = 1;
+                            if(courbe)that.VecteurCourbe(this.renderer.ctx,departX, departY,pointX,pointY)
+                            else that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)
                             }
                         }                   
                 }
+                
 		    })
 
 		    this.particleSystem.eachNode(function(node, pt){
-                if(node.data.active){
-                if (node.name != nodeSelectionne || di == 1){
+                if(node.data.active && node.data.actifPile){
+                if (!node.data.deplie){
                     this.renderer.ctx.beginPath();
-                    this.renderer.ctx.fillStyle = donneCouleur(node.name);
+                    this.renderer.ctx.fillStyle = donneCouleur(node.data.type);
                     this.renderer.ctx.arc(pt.x,pt.y,w,0,2*Math.PI);
                     this.renderer.ctx.fill();
                     CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * 1.5/node.data.nom.length,8),"Arial","black",node.data.nom);   
                 }else{
-                    if(node.data.typeGenerique == "scalar"){
-                        CreerRectangle(this.renderer.ctx,pt.x ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2); 
+                    if(node.data.typeGenerique == "primitive" || node.data.typeGenerique == "string"){
+                        CreerRectangle(this.renderer.ctx,pt.x ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.data.type),"black",2); 
                         var text = node.data.valeurScalaire;
-                        CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text,0,w * tailleCarre);
+                        CreerTexteNonCentre(this.renderer.ctx,pt.x - (w * tailleCarre/2) * 0.9,pt.y - (w * tailleCarre/2)*0.8,8,"Arial","black",node.data.nom,0,w * tailleCarre); 
+                        CreerText(this.renderer.ctx,pt.x,pt.y + 7,Math.max(w * tailleCarre/text.length,7),"Arial","black",text,0,w * tailleCarre * 1.8);
                     }
                     else if(node.data.typeGenerique == "struct"){
-                        this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                        this.renderer.ctx.fillStyle = donneCouleur(node.data.type)
                         var pX = pt.x
                         node.data.champs.forEach(element => {
-                            CreerRectangle(this.renderer.ctx,pX ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.name),"black",2); 
+                            CreerRectangle(this.renderer.ctx,pX ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.data.type),"black",2); 
                             
                             var text = element.value;
                             var textname = element.field_name;
                             if(element.is_pointer)text = element.field_name;
                             //le nom du champs
                             else{
-                                CreerTexteNonCentre(this.renderer.ctx,pX - (w * tailleCarre/2) * 0.9,pt.y - (w * tailleCarre/2)*0.8,Math.max(w * tailleCarre/textname.length,8),"Arial","black",textname,0,w * tailleCarre); 
+                                CreerTexteNonCentre(this.renderer.ctx,pX - (w * tailleCarre/2) * 0.9,pt.y - (w * tailleCarre/2)*0.8,8,"Arial","black",textname,0,w * tailleCarre); 
                             }
                             //le champs
                             var letext = w * tailleCarre/text.length;
@@ -182,7 +277,7 @@ class Renderer{
                         });
                     }                              
                     else{
-                        this.renderer.ctx.fillStyle = donneCouleur(node.name)
+                        this.renderer.ctx.fillStyle = donneCouleur(node.data.type)
                         this.renderer.ctx.beginPath();
                         this.renderer.ctx.arc(pt.x,pt.y,w,0,2*Math.PI);
                         this.renderer.ctx.fill();
@@ -191,6 +286,61 @@ class Renderer{
                 }
             }
             })
+
+            if(pileActive){//On dessine la pile
+                ///On compte le nombre de bloc de la pile à afficher
+                var totalBlocs = 0;
+                listStack.forEach(element => {
+                    if(element.variables.length > 0){
+                        if(element.deplie){
+                            element.variables.forEach(variable => {
+                                totalBlocs++;
+                            });
+                        }
+                        else totalBlocs++;
+                    }
+                });
+
+                var sous_ctx = sys.renderer.ctx;
+                var tailleX =  canvas.width/15;
+                var tailleY = canvas.height/15;
+                var compte_position = tailleY;
+                listStack.forEach(element => {
+                    if(element.variables.length > 0){
+                        if(element.deplie){
+                            //le rectangle gris sur le coté
+                            CreerRectangle(sous_ctx,((tailleX)/4)/2,(tailleY*element.variables.length)/2 + compte_position - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX/4,(tailleY * element.variables.length),"#AAAAAA","black",1);
+                            //TEXTE DU RECTANGLE GRIS//
+                            sous_ctx.fillStyle = 'black';
+                            let text = element.name;
+                            sous_ctx.font = "20px Arial"
+                            let x = tailleX/8;
+                            let y = (tailleY*element.variables.length)/2 + compte_position - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY);
+                            sous_ctx.save();
+                            sous_ctx.translate(x, y);
+                            sous_ctx.rotate(-Math.PI / 2);
+                            sous_ctx.textAlign = 'center';
+                            sous_ctx.fillText(text, 0, 0);
+                            sous_ctx.restore();
+                            //////////////////////////
+                            element.variables.forEach(variable => {
+                                CreerRectangle(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY,donneCouleur(sys.getNode(variable.address).data.type),"black",1)
+                                let textVar = variable.name
+                                if(sys.getNode(variable.address).data.typeGenerique != "pointer" && sys.getNode(variable.address).data.typeGenerique != "struct")textVar+= " : " + sys.getNode(variable.address).data.valeurScalaire;
+                                CreerText(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),Math.min(25,Math.max(tailleX/textVar.length,8)),"Arial","black",textVar,0,tailleX);
+                                compte_position+=tailleY;
+                            });
+                        }   
+                        else {
+                            CreerRectangle(sous_ctx,(tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX * 2,tailleY,"#AAAAAA","black",1)
+                            CreerText(sous_ctx,tailleX/2 + (tailleX)/8,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),Math.min(25,tailleX/element.name.length),"Arial","black",element.name,0,tailleX);
+                            compte_position+=tailleY;
+                        }
+                        
+                    }
+                });
+
+            }
 
 
             var compte = 0;
@@ -241,9 +391,8 @@ class Renderer{
                 var selec = e.pageX/(canvas.width/15)<<0;
                 listeCouleurActive[selec] = !listeCouleurActive[selec];
                 particleSystem.eachNode(function(node, pt){
-                    if(listeCouleurAssocier[selec] == donneCouleur(node.name)){
+                    if(listeCouleurAssocier[selec] == donneCouleur(node.data.type)){
                         node.data.active = !node.data.active;
-                        
                     }
                 })
                 that.redraw()
@@ -258,6 +407,7 @@ class Renderer{
             if (dragged && dragged.node !== null && dragged.node.data.active){
               dragged.node.fixed = true;
               nodeSelectionne = dragged.node.name;
+              if(di == 0 && dragged.node.data.typeGenerique != "array")dragged.node.data.deplie = !dragged.node.data.deplie
               if(di == 0 && etat == 1 && dragged.node.data.typeGenerique != "array")versTableau();
               if(dragged.node.data.tableau != undefined){
                   nodeTab = dragged.node;
@@ -304,36 +454,48 @@ class Renderer{
 var canvas = document.getElementById('viewport')//on recupere le canvas
 var ctx = document.getElementById('viewport').getContext('2d');//son contexte (permet de dessiner)
 var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
-var nodeTab = null;
+var nodeTab = null;//variable contenant la derniere node cliquer de type array
 var sys = arbor.ParticleSystem(100, 500, 0.8);//on declare un particleSysteme qui permet le temps reel
 sys.parameters({gravity:true})//on ajoute la gravité
 sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on créé le renderer du particleSysteme
 var listeCouleur = [];//chaque structure
 var listeCouleurAssocier  = [];//generer aleatoirement
 var listeCouleurActive = []; //permet de savoit si tel ou tel couleur est active
+var listeCol = [];//la liste qui contiendra toutes les couleurs à utiliser avant de les generer aléatoirement --initialisé dans ouvrirJSON--
+var listeCarre = [];//contiendra tout les carrés permettant de faire la legende
+var pileActive = false;//savoir si actuellement la pile est afficher ou non
+var listVariablesPile = [];//liste contenant les variables de la pile (une variable = une adresse et un nom)
+var listStack = [];//liste qui contient une frame dans sa globalité
 
-///////FONCTIONS ARBOR//////////////
+
+///////////////////FONCTIONS COULEURS//////////////
 
 function donneCouleur(nom){
-	var valeur = nom.split("\n")[0] 
+	var valeur = nom
 	for(let i = 0; i < listeCouleur.length;i++){
 		if(listeCouleur[i] == valeur)return listeCouleurAssocier[i];
 	}
 	return "black";
 }
 
+function couleurRandom(){
+    if(listeCol.length>0){
+        return listeCol.shift();
+    }
+    return '#'+(randomFixe(0.3)*0xFFFFFF<<0).toString(16);
+}
 
-/////////////////////////////TRAITEMENT/////////////////////////
+
+/////////////////////////////TRAITEMENT D'UN JSON COMPLET/////////////////////////
 
 class noeud{
-    constructor(adresse,type,contenu,symbol_name,tableau,typeGenerique,champs,valeurScalaire){
+    constructor(adresse,type,symbol_name,tableau,typeGenerique,champs,valeurScalaire){
         this.parents = []
         this.nbParents = 0;
         this.enfants = []
         this.nbEnfants = 0;
         this.adresse = adresse;
         this.type = type;
-        this.contenu = contenu;
         this.symbol_name = symbol_name;
         this.tableau = tableau;7
         this.typeGenerique = typeGenerique;
@@ -364,12 +526,7 @@ class carre{
 		this.e8 = e8;
 	}
 }
-listeCarre = [];
 
-function reload(){
-    clear();
-	ouvrirJSON(sys,lastMessage);
-}
 
 function ouvrirJSON(sys,message){
     sys.eachEdge(function(edge, pt1, pt2){
@@ -378,222 +535,161 @@ function ouvrirJSON(sys,message){
     sys.eachNode(function(node, pt){
         sys.pruneNode(node);
     })
-    listeCouleur = [];//chaque structure
-    listeCouleurAssocier  = [];//generer aleatoirement
     listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"]
-    //var data = JSON.parse(message);
-    var data = {
+    dataJSON = JSON.parse(message);
+    dataJSON = {
+        "location": {
+          "file": "dummy_list.c",
+          "line": 28
+        },
         "nodes": [
-            {
-                "base": {
-                    "address": "0x555555756260",
-                    "symbol_name": null,
-                    "type": "struct A",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "type": "struct",
-                "fields": [
-                    {
-                        "field_name": "test",
-                        "bitpos": 0,
-                        "type": "int",
-                        "size": 8,
-                        "value": "88",
-                        "is_pointer": false
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 0,
-                        "type": "char *",
-                        "size": 8,
-                        "value": "0x7fffffffe125",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "next",
-                        "bitpos": 64,
-                        "type": "struct A *",
-                        "size": 8,
-                        "value": "0x555555756280",
-                        "is_pointer": true
-                    }
-                ]
+          {
+            "base": {
+              "address": "0x400670",
+              "symbol_name": null,
+              "type": "struct cell",
+              "raw_type": "struct cell",
+              "size": 16
             },
-            {
-                "base": {
-                    "address": "0x5555557562c0",
-                    "symbol_name": null,
-                    "type": "struct A",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "type": "struct",
-                "fields": [
-                    {
-                        "field_name": "B",
-                        "bitpos": 0,
-                        "type": "char *",
-                        "size": 8,
-                        "value": "0x7fffffffe14f",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "next",
-                        "bitpos": 64,
-                        "type": "struct A *",
-                        "size": 8,
-                        "value": "0x0",
-                        "is_pointer": true
-                    }
-                ]
+            "meta-type": "struct",
+            "fields": [
+              {
+                "field_name": "value",
+                "bitpos": 0,
+                "type": "int",
+                "size": 4,
+                "value": "1447122753",
+                "is_pointer": false
+              },
+              {
+                "field_name": "next",
+                "bitpos": 64,
+                "type": "struct cell *",
+                "size": 8,
+                "value": "0x78e258d4c544155",
+                "is_pointer": true
+              }
+            ]
+          },
+          {
+            "base": {
+              "address": "0x7ffffffedde0",
+              "symbol_name": "head",
+              "type": "struct cell *",
+              "raw_type": "struct cell *",
+              "size": 8
             },
-            {
-                "base": {
-                    "address": "0x7fffffffdc30",
-                    "symbol_name": "argv",
-                    "type": "char **",
-                    "raw_type": "char **",
-                    "size": 8
-                },
-                "type": "pointer",
-                "target": "0x7fffffffdd48",
-                "target_type": "char *"
+            "meta-type": "pointer",
+            "target": "0x400670",
+            "target_type": "struct cell"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffedde8",
+              "symbol_name": "b",
+              "type": "int",
+              "raw_type": "int",
+              "size": 4
             },
-            {
-                "base": {
-                    "address": "0x7fffffffdc3c",
-                    "symbol_name": "argc",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "type": "scalar",
-                "value": "4"
+            "meta-type": "primitive",
+            "value": "4195376"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffeddec",
+              "symbol_name": "a",
+              "type": "int",
+              "raw_type": "int",
+              "size": 4
             },
-            {
-                "base": {
-                    "address": "0x7fffffffdc50",
-                    "symbol_name": "T1",
-                    "type": "struct A *",
-                    "raw_type": "struct A *",
-                    "size": 8
-                },
-                "type": "pointer",
-                "target": "0x555555756260",
-                "target_type": "struct A"
+            "meta-type": "primitive",
+            "value": "0"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffeddf0",
+              "symbol_name": "argv",
+              "type": "char **",
+              "raw_type": "char **",
+              "size": 8
             },
-            {
-                "base": {
-                    "address": "0x7fffffffdc58",
-                    "symbol_name": "T2",
-                    "type": "struct A *",
-                    "raw_type": "struct A *",
-                    "size": 8
-                },
-                "type": "pointer",
-                "target": "0x5555557562c0",
-                "target_type": "struct A"
+            "meta-type": "pointer",
+            "target": "0x7ffffffedee8",
+            "target_type": "char *"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffeddf8",
+              "symbol_name": "argc",
+              "type": "int",
+              "raw_type": "int",
+              "size": 4
             },
-            {
-                "base": {
-                    "address": "0x7fffffffdd48",
-                    "symbol_name": null,
-                    "type": "char *",
-                    "raw_type": "char *",
-                    "size": 8
-                },
-                "type": "pointer",
-                "target": "0x7fffffffe125",
-                "target_type": "char"
+            "meta-type": "primitive",
+            "value": "1"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffedee8",
+              "symbol_name": "lachaine",
+              "type": "char *",
+              "raw_type": "char *",
+              "size": 8
             },
-            {
-                "base": {
-                    "address": "0x7fffffffe125",
-                    "symbol_name": null,
-                    "type": "char",
-                    "raw_type": "char",
-                    "size": 1
-                },
-                "type": "scalar",
-                "value": "47 '/'"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffe14f",
-                    "symbol_name": null,
-                    "type": "char",
-                    "raw_type": "char",
-                    "size": 1
-                },
-                "type": "scalar",
-                "value": "50 '2'"
-            }
+            "meta-type": "string",
+            "value": "/mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisu00e9/moly/progs/theo/dummy_list"
+          }
         ],
         "edges": [
-            [
-                "0x555555756260",
-                "0x7fffffffe125",
-                "B"
-            ],
-            [
-                "0x5555557562c0",
-                "0x7fffffffe14f",
-                "B"
-            ],
-            [
-                "0x5555557562c0",
-                null,
-                "next"
-            ],
-            [
-                "0x7fffffffdc30",
-                "0x7fffffffdd48",
-                null
-            ],
-            [
-                "0x7fffffffdc50",
-                "0x555555756260",
-                null
-            ],
-            [
-                "0x7fffffffdc58",
-                "0x5555557562c0",
-                null
-            ],
-            [
-                "0x7fffffffdd48",
-                "0x7fffffffe125",
-                null
-            ]
+          [
+            "0x400670",
+            null,
+            "next"
+          ],
+          [
+            "0x7ffffffedde0",
+            "0x400670",
+            null
+          ],
+          [
+            "0x7ffffffeddf0",
+            "0x7ffffffedee8",
+            null
+          ]
         ],
         "stack": [
-            {
-                "name": "main",
-                "variables": [
-                    {
-                        "name": "T2",
-                        "address": "0x7fffffffdc58"
-                    },
-                    {
-                        "name": "T1",
-                        "address": "0x7fffffffdc50"
-                    },
-                    {
-                        "name": "argc",
-                        "address": "0x7fffffffdc3c"
-                    },
-                    {
-                        "name": "argv",
-                        "address": "0x7fffffffdc30"
-                    }
-                ]
-            }
+          {
+            "name": "main",
+            "variables": [
+              {
+                "name": "argc",
+                "address": "0x7ffffffeddf8"
+              },
+              {
+                "name": "argv",
+                "address": "0x7ffffffeddf0"
+              },
+              {
+                "name": "a",
+                "address": "0x7ffffffeddec"
+              },
+              {
+                "name": "b",
+                "address": "0x7ffffffedde8"
+              },
+              {
+                "name": "head",
+                "address": "0x7ffffffedde0"
+              },
+              {
+                "name": "lachaine",
+                "address": "0x7ffffffedee8"
+              }
+            ]
+          }
         ]
-    }
-    
-    
-	retour = creerNoeud(data);
+      }
+    retour = creerNoeud(dataJSON);
 	creerNode(sys,retour)
 }
 
@@ -609,23 +705,8 @@ function creerNoeud(data){
     //tout d'abord, créér une liste de chaque noeud pour setup les info de bases
     var listeNoeud = [];
     data.nodes.forEach(element => {
-        var contenu = "";
-        if(element.type == 'struct'){
-        element.fields.forEach(e => {
-            contenu+= e.field_name + " : " + e.value + "\n";
-        });
-		}
-		else if(element.type == 'pointer'){
-            contenu = element.base.symbol_name + "\nadresse: " + element.base.address + "\ntarget: " + element.target + "\ntarget type: " + element.target_type;
-        }
-        else if(element.type == 'array'){
-            contenu = element.base.symbol_name + "\ntype: "+element.element_type+"\nnombre elements: "+element.n_elements
-        }
-        else{
-            contenu = element.base.symbol_name + "\ntype: "+element.base.raw_type+"\nvaleur: "+element.value;
-        }
         var type = element.base.type
-        listeNoeud.push(new noeud(element.base.address,type,contenu,element.base.symbol_name,element.elements,element.type,element.fields,element.value))
+        listeNoeud.push(new noeud(element.base.address,type,element.base.symbol_name,element.elements,element["meta-type"],element.fields,element.value))
     });
 
     //la liste est créé, il va falloir maintenant creer les structures
@@ -637,26 +718,16 @@ function creerNoeud(data){
                 if(n.adresse == element[0])noeud1 = n;
                 else if(n.adresse == element[1])noeud2 = n;
             });
-
             if(!noeud2)noeud2 = noeud1
             if(!noeud1)noeud1 = noeud2
             noeud1.addEnfant(noeud2,element);
             noeud2.addParent(noeud1);
-            
         }
-
     });
     return listeNoeud;
 }
 
 
-var listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"]
-function couleurRandom(){
-    if(listeCol.length>0){
-        return listeCol.shift();
-    }
-    return '#'+(randomFixe(0.3)*0xFFFFFF<<0).toString(16);
-}
 
 function creerNode(sys,liste){
     //les couleurs
@@ -668,10 +739,9 @@ function creerNode(sys,liste){
 			var couleur = couleurRandom();
 			listeCouleurAssocier.push(couleur);	
         }
-		element.contenu = element.type + "\n" + element.contenu;
     });
     //on créé les legendes à partir de la liste de couleur 
-	for(let i = 0; i < listeCouleur.length;i++){
+	for(let i = listeCouleurActive.length; i < listeCouleur.length;i++){
         listeCarre.push(new carre(ctx,posX,canvas.height/30,canvas.width/15,canvas.height/15,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
         listeCouleurActive.push(true);
 		posX+=canvas.width/15;
@@ -684,8 +754,22 @@ function creerNode(sys,liste){
         if(element.symbol_name != null)symb =  element.symbol_name;
         else {
             symb =  element.adresse;
-        }    
-        sys.addNode(element.contenu,{nom:symb,tableau:element.tableau,active:true,typeGenerique:element.typeGenerique,pointeurs:[],nomsPointeurs:element.nomsPointeurs,champs:element.champs,valeurScalaire:element.valeurScalaire});
+        }
+
+        /////////////savoir si la node est active////////////////
+        //COULEUR
+        var posCouleur = 0;
+        for(let i = 0;i < listeCouleur.length;i++){
+            if(listeCouleur[i] == element.type)posCouleur = i;
+        }
+        //PILE
+        var actifPile = true;
+        /*
+        if(pileActive && (element.typeGenerique == "string" || element.typeGenerique == "primitive" || element.typeGenerique == "pointer")){
+            actifPile = false
+        }*/
+        /////////////////////////////////////////////////////////
+        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element.typeGenerique,nomsPointeurs:element.nomsPointeurs,champs:element.champs,valeurScalaire:element.valeurScalaire});
     });
 
 	liste.forEach(element => {
@@ -697,9 +781,8 @@ function creerNode(sys,liste){
                     if(element.champs[i].is_pointer && element.champs[i].value == enfant.adresse)pos = i;
                 }
                 maxfield = element.champs.length-1;
-                
             }
-            sys.addEdge(element.contenu,enfant.contenu,{parent:element.contenu,enfant:enfant.contenu,compte_field:pos,max_field:maxfield});
+            sys.addEdge(element.adresse,enfant.adresse,{parent:element.adresse,enfant:enfant.adresse,compte_field:pos,max_field:maxfield});
 		});
     });
 }
@@ -719,7 +802,7 @@ function appartientListe(element,liste){
 }
 
 /**
- * Creer un rectangle 
+ * Creer un rectangle
  * @param {any} ctx le contexte
  * @param {int} coordX coordonné X
  * @param {int} coordY coordonné Y
@@ -754,6 +837,10 @@ function CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur,bordure,taille
  * @param {texte} texte le texte à ecrire
  */
 function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax){
+    if(texte.length>30){
+        texte = texte.substr(0,27);
+        texte+= "..."
+    }
     ctx.textAlign = "center";
     ctx.textBaseline="middle";
     ctx.font = Taille + "px " + police;
@@ -763,7 +850,6 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax)
     var num = texte.split("\n").length - saut
     if( num > 1){
         coordY -= Taille * (texte.split("\n").length/2) 
-        if(num == 0)coordY += Taille/2;
     }
    
     if(tailleMax != undefined && tailleMax > 0){
@@ -775,7 +861,7 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax)
         });
 
         if(nbSaut%2 == 1 && nbSaut != 0)coordY-= (nbSaut/2 << 0) * Taille
-        else if(nbSaut != 0)coordY-= coordY-= ((nbSaut/2 << 0) + 0.5) * Taille
+        else if(nbSaut != 0)coordY-= ((nbSaut/2 << 0) + 0.5) * Taille
     }
     texte.split("\n").forEach(element => {
         if(compte >= saut){
@@ -793,7 +879,7 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax)
             coordY+=Taille;
         }
         else{
-            ctx.fillText(element,coordX,coordY); 
+            ctx.fillText(element,coordX,coordY);
             coordY+=Taille;
         }
         }compte++;
@@ -871,15 +957,25 @@ document.getElementById("clickMe").onclick = depInfo;
 var di = 0;
 document.getElementById("versTableau").onclick = versTableau;
 document.getElementById("sliderTab").oninput = refresh;
-document.getElementById("dunno").onclick = reload;
+document.getElementById("sliderPile").oninput = refresh;
+document.getElementById("dunno").onclick = SwapPile;
 
-///POSITIONNEMENT SLIDER
+///POSITIONNEMENT SLIDER TAB
 document.getElementById("sliderTab").style.width = 0.8 * screen.height;
 document.getElementById("sliderTab").value = 0;
 
 document.getElementById("sliderTab").style.top ="10px" 
 document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.8  + "px" 
 document.getElementById("sliderTab").style.visibility = "hidden"
+
+///POSITIONNEMENT SLIDER PILE
+document.getElementById("sliderPile").style.width = 0.75 * screen.height;
+document.getElementById("sliderPile").style.height = "5px";
+document.getElementById("sliderPile").value = 0;
+
+document.getElementById("sliderPile").style.top ="7%"
+document.getElementById("sliderPile").style.left = "-19.5%"
+document.getElementById("sliderPile").style.visibility = "hidden"
 
 function versTableau(){
     if(nodeTab == null)return;
@@ -906,7 +1002,7 @@ function depInfo(){
     else {di = 0; document.getElementById("clickMe").value = "Deplacement"}
 }
 
-//TIMELINE
+////////////////////////////////////////////////////////////////TIMELINE////////////////////////////////////////////////////////////////////////////////////////
 
 document.getElementById("TimeLine").value = 0;
 document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.99;
@@ -1045,3 +1141,50 @@ function timeLine(){
         document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
     }
 }
+
+///////////////////////////////////////////MODE PILE//////////////////////////////////////
+
+function SwapPile(){
+    if(pileActive){
+        document.getElementById("dunno").value = "Mode Pile";
+        sys.eachNode(function(node, pt){
+            node.data.actifPile = true;
+        })
+        document.getElementById("sliderPile").style.visibility = "hidden"
+    }else{
+        document.getElementById("dunno").value = "Mode Eclaté";
+        listVariablesPile = [];
+        listStack = [];
+        dataJSON.stack.forEach(element => {
+            listStack.push(Object.assign({deplie:true},element));
+           
+
+            element.variables.forEach(variable => {
+                listVariablesPile.push(variable);
+            });
+        });
+        sys.eachNode(function(node, pt){
+            listVariablesPile.forEach(variable => {
+                if(node.name == variable.address){
+                    node.data.actifPile = false;
+                }
+            });
+        })
+        document.getElementById("sliderPile").style.visibility = "visible"
+    }
+    pileActive = !pileActive;
+    refresh();
+}
+
+
+function decalePile(nbBlocsPlassables,nbBlocsTotaux,pourcent,taille){
+    pourcent /= 2;
+    if(nbBlocsPlassables>=nbBlocsTotaux)return 0;
+    let max = ( nbBlocsTotaux - nbBlocsPlassables ) * taille
+    return Math.min(max,(pourcent * nbBlocsTotaux) * taille);
+}
+
+
+
+////////////////FONCTIONS DE MANIPULATIONS DES NOEUDS ET EDGES ////////////////////////////
+ 
