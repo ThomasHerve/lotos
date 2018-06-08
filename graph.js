@@ -85,6 +85,7 @@ class Renderer{
         decale = w * tailleCarre;
         var that = this;
 		    this.particleSystem.eachEdge(function(edge, pt1, pt2){
+                var versPile = false;
                 if(pS.getNode(edge.data.enfant).data.active && pS.getNode(edge.data.parent).data.active){
                     //cas classique explosé
                     var x1 = pt1.x;
@@ -93,6 +94,7 @@ class Renderer{
                     var y2 = pt2.y;
                     var DEP = false;
                     var courbe = false;
+
                     //le cas ou on pointe de la pile vers un element encore dans arbor
                     if(!pS.getNode(edge.data.parent).data.actifPile)
                     {
@@ -129,14 +131,15 @@ class Renderer{
                                             totalBlocs++;
                                     });
                                 }
-                                else if(!Deployer){
+                                else if(!Deployer2){
                                     Decalage += canvas.height/15;
                                     totalBlocs++;
                                 }else totalBlocs++;
                             });
                             if(Deployer2){
                                 x2 = canvas.width/15 + canvas.width/60;
-                                y2 = canvas.height/15 + Decalage - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,canvas.height/15);
+                                y2 =  Decalage - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,canvas.height/15) - canvas.height/60;
+                                console.log(Decalage)
                             }
                             else{
                                 return;
@@ -147,10 +150,40 @@ class Renderer{
                         }
                     }
                     /////////////////////////////////////////////////////////////////
-                    
+                    //Le cas tres particulier ou un element du tas pointe vers la pile
+                    else if(!pS.getNode(edge.data.enfant).data.actifPile)
+                    {
+                        var Deployer2 = false;
+                        var Decalage = canvas.height/15;
+                        totalBlocs = 0;
+                        listStack.forEach(element => {
+                            if(element.deplie){
+                                element.variables.forEach(variable => {
+                                if(variable.address == pS.getNode(edge.data.enfant).name){
+                                    Deployer2 = true;
+                                }
+                                if(!Deployer2)Decalage += canvas.height/15;
+                                totalBlocs++;
+                                });
+                            }
+                            else if(!Deployer2){
+                                Decalage += canvas.height/15;
+                                totalBlocs++;
+                            }else totalBlocs++;
+                        });
+                        if(Deployer2){
+                            x2 = canvas.width/15 + canvas.width/60;
+                            y2 = canvas.height/30 + Decalage - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,canvas.height/15);
+                            versPile = true;
+                        }
+                        else{
+                            return;
+                        }
+                    }   
+                    /////////////////////////////////////////////////////////////////
                     this.renderer.ctx.strokeStyle = "black";
                     var dist = w;
-                    if(!pS.getNode(edge.data.parent).data.deplie || pS.getNode(edge.data.parent).data.typeGenerique != "struct"){
+                    if((!pS.getNode(edge.data.parent).data.deplie || pS.getNode(edge.data.parent).data.typeGenerique != "struct")){
                         if(pS.getNode(edge.data.parent) == pS.getNode(edge.data.enfant)){//on pointe sur sois meme
                             this.renderer.ctx.strokeStyle = donneCouleur(pS.getNode(edge.data.parent).data.type)
                             this.renderer.ctx.beginPath();
@@ -161,7 +194,7 @@ class Renderer{
                         else{
                         this.renderer.ctx.strokeStyle = donneCouleur(pS.getNode(edge.data.parent).data.type)
                         
-                        if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string")){
+                        if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string" || versPile)){
                             if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 -= decale/2
                             }
@@ -188,9 +221,10 @@ class Renderer{
                         else that.Vecteur(this.renderer.ctx,x1,y1,pointX,pointY)
                     }
                     }
-                    else{      
+                    else{
                         x1 = x1 + decale * edge.data.compte_field;
-                        if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive")){
+                        if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string" || versPile)){
+                            if(!versPile){
                             if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 -= decale/2
                             }
@@ -203,6 +237,7 @@ class Renderer{
                             else if(y1 < y2){
                                 y2 -= decale/2;
                             }
+                        }
                             var pointX = x2;
                             var pointY = y2;
                         }
@@ -213,7 +248,8 @@ class Renderer{
                         }
                         var departX = x1
                         var departY = y1
-                        if(DEP){
+
+                        if(!DEP){
                             if(edge.data.compte_field ==0 && departX > pointX){
                                 departX -= decale/2
                             }
@@ -397,11 +433,53 @@ class Renderer{
                 })
                 that.redraw()
             }
+            if(pileActive && e.pageX < (canvas.width * 1.5 / 15 - (canvas.width/90))){
+
+                var totalBlocs = 0;
+                listStack.forEach(element => {
+                    if(element.deplie){
+                        element.variables.forEach(variable => {
+                            totalBlocs++;
+                        });
+                    }else totalBlocs++;
+                });
+
+                var tailleY = canvas.height/15;
+                var posy = tailleY * 1.5 + 10 -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY);
+                listStack.forEach(element => {
+                    var dec;
+                    if(!element.deplie){
+                        dec = tailleY/2;
+                        if(e.pageY <= posy + dec && e.pageY >= posy - dec){
+                            element.deplie = true;
+                        }
+                        posy += tailleY;
+                    }
+
+                    else{
+                        var compte = 0;
+                        var posYcentral;
+                        element.variables.forEach(variable => {
+                            compte++;
+                        });
+                        posYcentral = posy + tailleY * compte/2 - tailleY/2;
+                        dec = tailleY * compte/2;
+                        posy += compte * tailleY;
+                        //console.log("position souris : " + e.pageY + " borne min : " + (posYcentral - dec) + " borne max : " + (posYcentral + dec));
+                        if(e.pageY < posYcentral + dec && e.pageY > posYcentral - dec){
+                            element.deplie = false;
+                        }
+                    }
+                });
+                that.redraw();
+            }
+
+
             else{
              //PARTIE NODES
             nearest = sys.nearest(_mouseP);
-            if (!nearest.node) return false
-            selected = (nearest.distance < 200) ? nearest : null
+            if (!nearest.node) return false;
+            selected = (nearest.distance < 200) ? nearest : null;
             dragged = selected;
 
             if (dragged && dragged.node !== null && dragged.node.data.active){
@@ -455,7 +533,7 @@ var canvas = document.getElementById('viewport')//on recupere le canvas
 var ctx = document.getElementById('viewport').getContext('2d');//son contexte (permet de dessiner)
 var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
 var nodeTab = null;//variable contenant la derniere node cliquer de type array
-var sys = arbor.ParticleSystem(100, 500, 0.8);//on declare un particleSysteme qui permet le temps reel
+var sys = arbor.ParticleSystem(100, 200, 0.8);//on declare un particleSysteme qui permet le temps reel
 sys.parameters({gravity:true})//on ajoute la gravité
 sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on créé le renderer du particleSysteme
 var listeCouleur = [];//chaque structure
@@ -539,163 +617,443 @@ function ouvrirJSON(sys,message){
     dataJSON = JSON.parse(message);
     dataJSON = {
         "location": {
-          "file": "dummy_list.c",
-          "line": 28
+            "file": "cycle.c",
+            "line": 12
         },
         "nodes": [
-          {
-            "base": {
-              "address": "0x400670",
-              "symbol_name": null,
-              "type": "struct cell",
-              "raw_type": "struct cell",
-              "size": 16
+            {
+                "base": {
+                    "address": "0x555555756260",
+                    "symbol_name": null,
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "A",
+                        "bitpos": 0,
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x555555756280",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "B",
+                        "bitpos": 64,
+                        "type": "int",
+                        "size": 4,
+                        "value": "1",
+                        "is_pointer": false
+                    }
+                ]
             },
-            "meta-type": "struct",
-            "fields": [
-              {
-                "field_name": "value",
-                "bitpos": 0,
-                "type": "int",
-                "size": 4,
-                "value": "1447122753",
-                "is_pointer": false
-              },
-              {
-                "field_name": "next",
-                "bitpos": 64,
-                "type": "struct cell *",
-                "size": 8,
-                "value": "0x78e258d4c544155",
-                "is_pointer": true
-              }
-            ]
-          },
-          {
-            "base": {
-              "address": "0x7ffffffedde0",
-              "symbol_name": "head",
-              "type": "struct cell *",
-              "raw_type": "struct cell *",
-              "size": 8
+            {
+                "base": {
+                    "address": "0x555555756280",
+                    "symbol_name": null,
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "A",
+                        "bitpos": 0,
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x5555557562a0",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "B",
+                        "bitpos": 64,
+                        "type": "int",
+                        "size": 4,
+                        "value": "2",
+                        "is_pointer": false
+                    }
+                ]
             },
-            "meta-type": "pointer",
-            "target": "0x400670",
-            "target_type": "struct cell"
-          },
-          {
-            "base": {
-              "address": "0x7ffffffedde8",
-              "symbol_name": "b",
-              "type": "int",
-              "raw_type": "int",
-              "size": 4
+            {
+                "base": {
+                    "address": "0x5555557562a0",
+                    "symbol_name": null,
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "A",
+                        "bitpos": 0,
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x7fffffffdbf0",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "B",
+                        "bitpos": 64,
+                        "type": "int",
+                        "size": 4,
+                        "value": "3",
+                        "is_pointer": false
+                    }
+                ]
             },
-            "meta-type": "primitive",
-            "value": "4195376"
-          },
-          {
-            "base": {
-              "address": "0x7ffffffeddec",
-              "symbol_name": "a",
-              "type": "int",
-              "raw_type": "int",
-              "size": 4
+            {
+                "base": {
+                    "address": "0x7fffffffdb24",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "2"
             },
-            "meta-type": "primitive",
-            "value": "0"
-          },
-          {
-            "base": {
-              "address": "0x7ffffffeddf0",
-              "symbol_name": "argv",
-              "type": "char **",
-              "raw_type": "char **",
-              "size": 8
+            {
+                "base": {
+                    "address": "0x7fffffffdb28",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x5555557562a0",
+                "target_type": "Bonjour"
             },
-            "meta-type": "pointer",
-            "target": "0x7ffffffedee8",
-            "target_type": "char *"
-          },
-          {
-            "base": {
-              "address": "0x7ffffffeddf8",
-              "symbol_name": "argc",
-              "type": "int",
-              "raw_type": "int",
-              "size": 4
+            {
+                "base": {
+                    "address": "0x7fffffffdb54",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "3"
             },
-            "meta-type": "primitive",
-            "value": "1"
-          },
-          {
-            "base": {
-              "address": "0x7ffffffedee8",
-              "symbol_name": "lachaine",
-              "type": "char *",
-              "raw_type": "char *",
-              "size": 8
+            {
+                "base": {
+                    "address": "0x7fffffffdb58",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756280",
+                "target_type": "Bonjour"
             },
-            "meta-type": "string",
-            "value": "/mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisu00e9/moly/progs/theo/dummy_list"
-          }
+            {
+                "base": {
+                    "address": "0x7fffffffdb68",
+                    "symbol_name": "suiv",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x5555557562a0",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdb84",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "4"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdb88",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756260",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdb98",
+                    "symbol_name": "suiv",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756280",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbb4",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "5"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbb8",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x7fffffffdbf0",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbc8",
+                    "symbol_name": "suiv",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756260",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbec",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "5"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbf0",
+                    "symbol_name": "Cqfd",
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "A",
+                        "bitpos": 0,
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x555555756260",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "B",
+                        "bitpos": 64,
+                        "type": "int",
+                        "size": 4,
+                        "value": "0",
+                        "is_pointer": false
+                    }
+                ]
+            }
         ],
         "edges": [
-          [
-            "0x400670",
-            null,
-            "next"
-          ],
-          [
-            "0x7ffffffedde0",
-            "0x400670",
-            null
-          ],
-          [
-            "0x7ffffffeddf0",
-            "0x7ffffffedee8",
-            null
-          ]
+            [
+                "0x555555756260",
+                "0x555555756280",
+                "A"
+            ],
+            [
+                "0x555555756280",
+                "0x5555557562a0",
+                "A"
+            ],
+            [
+                "0x5555557562a0",
+                "0x7fffffffdbf0",
+                "A"
+            ],
+            [
+                "0x7fffffffdb28",
+                "0x5555557562a0",
+                null
+            ],
+            [
+                "0x7fffffffdb58",
+                "0x555555756280",
+                null
+            ],
+            [
+                "0x7fffffffdb68",
+                "0x5555557562a0",
+                null
+            ],
+            [
+                "0x7fffffffdb88",
+                "0x555555756260",
+                null
+            ],
+            [
+                "0x7fffffffdb98",
+                "0x555555756280",
+                null
+            ],
+            [
+                "0x7fffffffdbb8",
+                "0x7fffffffdbf0",
+                null
+            ],
+            [
+                "0x7fffffffdbc8",
+                "0x555555756260",
+                null
+            ],
+            [
+                "0x7fffffffdbf0",
+                "0x555555756260",
+                "A"
+            ]
         ],
         "stack": [
-          {
-            "name": "main",
-            "variables": [
-              {
-                "name": "argc",
-                "address": "0x7ffffffeddf8"
-              },
-              {
-                "name": "argv",
-                "address": "0x7ffffffeddf0"
-              },
-              {
-                "name": "a",
-                "address": "0x7ffffffeddec"
-              },
-              {
-                "name": "b",
-                "address": "0x7ffffffedde8"
-              },
-              {
-                "name": "head",
-                "address": "0x7ffffffedde0"
-              },
-              {
-                "name": "lachaine",
-                "address": "0x7ffffffedee8"
-              }
-            ]
-          }
+            {
+                "name": "main",
+                "variables": [
+                    {
+                        "name": "Cqfd",
+                        "address": "0x7fffffffdbf0"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdbec"
+                    }
+                ]
+            },
+            {
+                "name": "init_rec",
+                "variables": [
+                    {
+                        "name": "suiv",
+                        "address": "0x7fffffffdbc8"
+                    },
+                    {
+                        "name": "c",
+                        "address": "0x7fffffffdbb8"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdbb4"
+                    }
+                ]
+            },
+            {
+                "name": "init_rec",
+                "variables": [
+                    {
+                        "name": "suiv",
+                        "address": "0x7fffffffdb98"
+                    },
+                    {
+                        "name": "c",
+                        "address": "0x7fffffffdb88"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdb84"
+                    }
+                ]
+            },
+            {
+                "name": "init_rec",
+                "variables": [
+                    {
+                        "name": "suiv",
+                        "address": "0x7fffffffdb68"
+                    },
+                    {
+                        "name": "c",
+                        "address": "0x7fffffffdb58"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdb54"
+                    }
+                ]
+            },
+            {
+                "name": "init_rec",
+                "variables": [
+                    {
+                        "name": "c",
+                        "address": "0x7fffffffdb28"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdb24"
+                    }
+                ]
+            }
         ]
-      }
+    }
+    
+
+    CreerStack();
     retour = creerNoeud(dataJSON);
 	creerNode(sys,retour)
 }
 
 
 
+function CreerStack(){
+    listVariablesPile = [];
+    listStack = [];
+    var listnomframe = []
+    var comptenomframe = []
+    dataJSON.stack.forEach(element => {
+        var ajout = "";
+        if(!appartientListe(element.name,listnomframe)){
+            listnomframe.push(element.name);
+            comptenomframe.push(0);
+        }
+        else{
+            comptenomframe[positionList(element.name,listnomframe)]++;
+            ajout = "(" +  (comptenomframe[positionList(element.name,listnomframe)] + 1) + ")";
+        }
+        
+        element.name+=ajout;
+        listStack.push(Object.assign({deplie:false},element));
+        element.variables.forEach(variable => {
+            listVariablesPile.push(variable);
+        });
+    });
 
+}
+
+
+function positionList(element,list){
+    let position = -1
+    let c = 0;
+    list.forEach(e => {
+        if(e == element)position = c;
+        c++;
+    });
+    return position;
+}
 
 /**
  * Creer une structure de type "noeud" a partir d'un JSON
@@ -1153,16 +1511,6 @@ function SwapPile(){
         document.getElementById("sliderPile").style.visibility = "hidden"
     }else{
         document.getElementById("dunno").value = "Mode Eclaté";
-        listVariablesPile = [];
-        listStack = [];
-        dataJSON.stack.forEach(element => {
-            listStack.push(Object.assign({deplie:true},element));
-           
-
-            element.variables.forEach(variable => {
-                listVariablesPile.push(variable);
-            });
-        });
         sys.eachNode(function(node, pt){
             listVariablesPile.forEach(variable => {
                 if(node.name == variable.address){
@@ -1185,6 +1533,5 @@ function decalePile(nbBlocsPlassables,nbBlocsTotaux,pourcent,taille){
 }
 
 
-
-////////////////FONCTIONS DE MANIPULATIONS DES NOEUDS ET EDGES ////////////////////////////
- 
+///\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\\
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\FONCTIONS DE MANIPULATIONS DES NOEUDS ET EDGES /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
