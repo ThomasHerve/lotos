@@ -1,6 +1,6 @@
 /*******************************
 *                              *
-*  Lotos :Webclient for Moly   *
+*  Lotos: Webclient for Moly   *
 *       by Thomas HERVE        *
 *                              *
 *                              *
@@ -44,6 +44,7 @@ class Renderer{
      var xE=xC-ArrowWidth*(-(yB-yA))/AB;var yE=yC-ArrowWidth*((xB-xA))/AB;
      // et on trace le segment [AB], et sa flèche:
      ctx.beginPath();
+     ctx.lineWidth = 2;
      ctx.moveTo(xA,yA);ctx.lineTo(xB,yB);
      ctx.moveTo(xD,yD);ctx.lineTo(xB,yB);ctx.lineTo(xE,yE);
      ctx.stroke();
@@ -68,6 +69,7 @@ class Renderer{
          var yE=yC-ArrowWidth*((xB-cp1x))/AB;
          // et on trace le segment [AB], et sa flèche:
          ctx.beginPath();
+         ctx.lineWidth = 2;
          ctx.moveTo(xA,yA);
          //ctx.lineTo(xB,yB);
          ctx.quadraticCurveTo(cp1x, cp1y, xB, yB)
@@ -94,6 +96,7 @@ class Renderer{
                     var y2 = pt2.y;
                     var DEP = false;
                     var courbe = false;
+                    var parsDePile = false;
 
                     //le cas ou on pointe de la pile vers un element encore dans arbor
                     if(!pS.getNode(edge.data.parent).data.actifPile)
@@ -105,10 +108,19 @@ class Renderer{
                         listStack.forEach(element => {
                             if(element.deplie){
                                 element.variables.forEach(variable => {
-                                    if(variable.address == pS.getNode(edge.data.parent).name)Deployer = true;
-                                    if(!Deployer)Decalage += canvas.height/15;
-                                    totalBlocs++;
+                                    if(variable.address == pS.getNode(edge.data.parent).name){
+                                        Deployer = true;
+                                        //si on doit partir d'un champs d'une structure
+                                        if(pS.getNode(variable.address).data.typeGenerique == "struct"){
+                                            parsDePile = true;
+                                        }             
+                                    }
+                                    if( pS.getNode(variable.address).data.typeGenerique == "struct" && !Deployer){
+                                        Decalage += canvas.height/15 + canvas.height/15 * pS.getNode(variable.address).data.champs.length;
+                                    }
+                                    else if(!Deployer)Decalage += canvas.height/15;
                                 });
+                                totalBlocs+=element.nbElem;
                             }
                             else if(!Deployer){
                                 Decalage += canvas.height/15;
@@ -126,6 +138,13 @@ class Renderer{
                                 listStack.forEach(element => {
                                     if(element.deplie){
                                         element.variables.forEach(variable => {
+                                            if(!Deployer2 && variable.address != pS.getNode(edge.data.enfant).name && pS.getNode(variable.address).data.typeGenerique == "struct"){
+                                                totalBlocs+=pS.getNode(variable.address).data.champs.length;
+                                                Decalage += canvas.height/15 * pS.getNode(variable.address).data.champs.length;
+                                            }
+                                            else if(pS.getNode(variable.address).data.typeGenerique == "struct"){
+                                                totalBlocs+=pS.getNode(variable.address).data.champs.length;
+                                            }
                                             if(variable.address == pS.getNode(edge.data.enfant).name)Deployer2 = true;
                                             if(!Deployer2)Decalage += canvas.height/15;
                                             totalBlocs++;
@@ -139,7 +158,6 @@ class Renderer{
                             if(Deployer2){
                                 x2 = canvas.width/15 + canvas.width/60;
                                 y2 =  Decalage - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,canvas.height/15) - canvas.height/60;
-                                console.log(Decalage)
                             }
                             else{
                                 return;
@@ -159,12 +177,13 @@ class Renderer{
                         listStack.forEach(element => {
                             if(element.deplie){
                                 element.variables.forEach(variable => {
-                                if(variable.address == pS.getNode(edge.data.enfant).name){
-                                    Deployer2 = true;
-                                }
-                                if(!Deployer2)Decalage += canvas.height/15;
-                                totalBlocs++;
+                                    if(variable.address == pS.getNode(edge.data.enfant).name){
+                                        Deployer2 = true;
+                                    }
+                                    if(!Deployer2)Decalage += canvas.height/15;
+                                    
                                 });
+                                totalBlocs+=element.nbElem;
                             }
                             else if(!Deployer2){
                                 Decalage += canvas.height/15;
@@ -222,13 +241,17 @@ class Renderer{
                     }
                     }
                     else{
-                        x1 = x1 + decale * edge.data.compte_field;
+                        if(parsDePile){
+                            y1 +=  canvas.height/15 * (edge.data.compte_field+1);
+                        }else{
+                            x1 = x1 + decale * edge.data.compte_field;
+                        }
                         if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string" || versPile)){
                             if(!versPile){
                             if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 -= decale/2
                             }
-                            else if( pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" && x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                            else if((pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string")&& x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 += decale/2
                             }
                             else if(y1 > y2){
@@ -329,9 +352,7 @@ class Renderer{
                 listStack.forEach(element => {
                     if(element.variables.length > 0){
                         if(element.deplie){
-                            element.variables.forEach(variable => {
-                                totalBlocs++;
-                            });
+                            totalBlocs+=element.nbElem;
                         }
                         else totalBlocs++;
                     }
@@ -345,13 +366,13 @@ class Renderer{
                     if(element.variables.length > 0){
                         if(element.deplie){
                             //le rectangle gris sur le coté
-                            CreerRectangle(sous_ctx,((tailleX)/4)/2,(tailleY*element.variables.length)/2 + compte_position - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX/4,(tailleY * element.variables.length),"#AAAAAA","black",1);
+                            CreerRectangle(sous_ctx,((tailleX)/4)/2,(tailleY*element.nbElem)/2 + compte_position - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX/4,(tailleY * element.nbElem),"#AAAAAA","black",1);
                             //TEXTE DU RECTANGLE GRIS//
                             sous_ctx.fillStyle = 'black';
                             let text = element.name;
                             sous_ctx.font = "20px Arial"
                             let x = tailleX/8;
-                            let y = (tailleY*element.variables.length)/2 + compte_position - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY);
+                            let y = (tailleY*element.nbElem)/2 + compte_position - decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY);
                             sous_ctx.save();
                             sous_ctx.translate(x, y);
                             sous_ctx.rotate(-Math.PI / 2);
@@ -365,6 +386,20 @@ class Renderer{
                                 if(sys.getNode(variable.address).data.typeGenerique != "pointer" && sys.getNode(variable.address).data.typeGenerique != "struct")textVar+= " : " + sys.getNode(variable.address).data.valeurScalaire;
                                 CreerText(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),Math.min(25,Math.max(tailleX/textVar.length,8)),"Arial","black",textVar,0,tailleX);
                                 compte_position+=tailleY;
+                                if(sys.getNode(variable.address).data.typeGenerique == "struct"){
+                                    sys.getNode(variable.address).data.champs.forEach(champ =>{
+                                        CreerRectangle(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY,donneCouleur(sys.getNode(variable.address).data.type),"black",1)
+                                        textVar = champ.field_name;
+                                        if(!champ.is_pointer)textVar+= " : " + champ.value;
+                                        CreerText(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),Math.min(25,Math.max(tailleX/textVar.length,8)),"Arial","black",textVar,0,tailleX);
+                                        compte_position+=tailleY;
+                                    })
+                                    //bordure
+                                    sous_ctx.beginPath();
+                                    sous_ctx.lineWidth = 4;
+                                    sous_ctx.rect((tailleX)/4,-(tailleY) + (compte_position  - sys.getNode(variable.address).data.champs.length * tailleY) -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY * (1+sys.getNode(variable.address).data.champs.length));
+                                    sous_ctx.stroke();
+                                }
                             });
                         }   
                         else {
@@ -376,9 +411,10 @@ class Renderer{
                     }
                 });
 
+
             }
 
-
+            //les types en haut de la fenetre
             var compte = 0;
             listeCarre.forEach(element => {
                 if(listeCouleurActive[compte]){
@@ -391,15 +427,16 @@ class Renderer{
             });
 
 
-           var leContexte = this.ctx;
-           if(etat == 1){
-               var compte = 0;
-               var fixe = this.canvas.height/50;
-               var coordy = fixe;
-               var tailleFont = coordy * 0.8;
-               var nbplace = (this.canvas.height/fixe << 0) - 3;//nb de case que l'on peut afficher
-               var stateSlider = document.getElementById("sliderTab").value;
-               CreerText(leContexte,this.canvas.width * 0.95,coordy,tailleFont,"Arial","black",nodeTab.data.nom);
+            //si on affiche le tableau
+            var leContexte = this.ctx;
+            if(etat == 1){
+                var compte = 0;
+                var fixe = this.canvas.height/50;
+                var coordy = fixe;
+                var tailleFont = coordy * 0.8;
+                var nbplace = (this.canvas.height/fixe << 0) - 3;//nb de case que l'on peut afficher
+                var stateSlider = document.getElementById("sliderTab").value;
+                CreerText(leContexte,this.canvas.width * 0.95,coordy,tailleFont,"Arial","black",nodeTab.data.nom);
                 nodeTab.data.tableau.forEach(element => {
                     if(compte >= stateSlider * nodeTab.data.tableau.length && compte <= stateSlider * nodeTab.data.tableau.length + nbplace){
                         coordy += fixe;
@@ -407,6 +444,56 @@ class Renderer{
                         CreerText(leContexte,this.canvas.width * 0.95,coordy,tailleFont,"Arial","black",element)
                     }compte++;
                 });
+
+                coordy = fixe;
+                var those = this;
+                compte = 0;
+                //si c'est un tableau de pointeurs
+                if(nodeTab.data.is_pointer){
+                    nodeTab.data.tableau.forEach(element => {
+                        if(compte >= stateSlider * nodeTab.data.tableau.length && compte <= stateSlider * nodeTab.data.tableau.length + nbplace){
+                            coordy += fixe;
+                            var valide = false;
+                            var sous_x,sous_y;
+                            sys.eachNode(function(node, pt){
+                                if(node.name == element && node.data.actifPile && node.data.active){
+                                    sous_x = pt.x;
+                                    sous_y = pt.y;
+                                    valide = node;
+                                }
+                            })
+
+                            if(valide){
+                                var x1 = this.canvas.width * 0.89;
+                                var y1 = coordy;
+                                var x2 = sous_x;
+                                var y2 = sous_y;
+                                if(valide.data.deplie && (valide.data.typeGenerique == "struct" ||valide.data.typeGenerique == "primitive" || valide.data.typeGenerique == "string" )){
+                                    if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                                        x2 -= decale/2
+                                    }
+                                    else if((valide.data.typeGenerique == "primitive"|| valide.data.typeGenerique == "string") && x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
+                                        x2 += decale/2
+                                    }
+                                    else if(y1 > y2){
+                                        y2 += decale/2;
+                                    }
+                                    else if(y1 < y2){
+                                        y2 -= decale/2;
+                                    }
+                                    var pointX = x2;
+                                    var pointY = y2;
+                                }
+                                else{
+                                    var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+                                    var pointX = x2 + ((x1-x2) * dist) /d
+                                    var pointY = y2 + ((y1-y2) * dist) /d
+                                }
+                                those.Vecteur(leContexte,this.canvas.width * 0.89,coordy,pointX,pointY);
+                            }
+                        }compte++;
+                    });
+                }
            }
 		
     };
@@ -438,12 +525,9 @@ class Renderer{
                 var totalBlocs = 0;
                 listStack.forEach(element => {
                     if(element.deplie){
-                        element.variables.forEach(variable => {
-                            totalBlocs++;
-                        });
+                       totalBlocs+=element.nbElem;
                     }else totalBlocs++;
                 });
-
                 var tailleY = canvas.height/15;
                 var posy = tailleY * 1.5 + 10 -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY);
                 listStack.forEach(element => {
@@ -459,13 +543,11 @@ class Renderer{
                     else{
                         var compte = 0;
                         var posYcentral;
-                        element.variables.forEach(variable => {
-                            compte++;
-                        });
+                        compte+=element.nbElem;
+                        
                         posYcentral = posy + tailleY * compte/2 - tailleY/2;
                         dec = tailleY * compte/2;
                         posy += compte * tailleY;
-                        //console.log("position souris : " + e.pageY + " borne min : " + (posYcentral - dec) + " borne max : " + (posYcentral + dec));
                         if(e.pageY < posYcentral + dec && e.pageY > posYcentral - dec){
                             element.deplie = false;
                         }
@@ -478,6 +560,7 @@ class Renderer{
             else{
              //PARTIE NODES
             nearest = sys.nearest(_mouseP);
+            if(!nearest)return false;
             if (!nearest.node) return false;
             selected = (nearest.distance < 200) ? nearest : null;
             dragged = selected;
@@ -567,7 +650,7 @@ function couleurRandom(){
 /////////////////////////////TRAITEMENT D'UN JSON COMPLET/////////////////////////
 
 class noeud{
-    constructor(adresse,type,symbol_name,tableau,typeGenerique,champs,valeurScalaire){
+    constructor(adresse,type,symbol_name,tableau,typeGenerique,champs,valeurScalaire,is_pointer){
         this.parents = []
         this.nbParents = 0;
         this.enfants = []
@@ -580,6 +663,7 @@ class noeud{
         this.nomsPointeurs = []
         this.champs = champs
         this.valeurScalaire = valeurScalaire;
+        this.is_pointer = is_pointer;
     }
     addEnfant(nouveauNoeud,nomP){
         this.enfants.push(nouveauNoeud);
@@ -617,121 +701,146 @@ function ouvrirJSON(sys,message){
     dataJSON = JSON.parse(message);
     dataJSON = {
         "location": {
-            "file": "cycle.c",
-            "line": 12
+            "file": "testrecursif.c",
+            "line": 18
         },
         "nodes": [
             {
                 "base": {
-                    "address": "0x555555756260",
+                    "address": "0x7fffffffdca8",
+                    "symbol_name": "tab",
+                    "type": "chaine tab",
+                    "raw_type": "chaine tab",
+                    "size": 8
+                },
+                "meta-type": "array",
+                "dynamic": true,
+                "element_type": "uint32_t",
+                "element_size": 4,
+                "n_elements": 3,
+                "is_pointer": true,
+                "elements": [
+                    "0x8402260",
+                    "0x8402280",
+                    "0x84022a0"
+                ]
+            },
+            {
+                "base": {
+                    "address": "0x8402260",
                     "symbol_name": null,
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
+                    "type": "chaine",
+                    "raw_type": "struct s_chaine",
                     "size": 16
                 },
                 "meta-type": "struct",
                 "fields": [
                     {
-                        "field_name": "A",
+                        "field_name": "valeur",
                         "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x555555756280",
-                        "is_pointer": true
+                        "type": "int",
+                        "size": 4,
+                        "value": "0",
+                        "is_pointer": false
                     },
                     {
-                        "field_name": "B",
+                        "field_name": "suivant",
                         "bitpos": 64,
+                        "type": "struct s_chaine *",
+                        "size": 8,
+                        "value": "0x8402280",
+                        "is_pointer": true
+                    }
+                ]
+            },
+            {
+                "base": {
+                    "address": "0x8402280",
+                    "symbol_name": null,
+                    "type": "struct s_chaine",
+                    "raw_type": "struct s_chaine",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "valeur",
+                        "bitpos": 0,
                         "type": "int",
                         "size": 4,
                         "value": "1",
                         "is_pointer": false
+                    },
+                    {
+                        "field_name": "suivant",
+                        "bitpos": 64,
+                        "type": "struct s_chaine *",
+                        "size": 8,
+                        "value": "0x84022a0",
+                        "is_pointer": true
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x555555756280",
+                    "address": "0x84022a0",
                     "symbol_name": null,
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
+                    "type": "struct s_chaine",
+                    "raw_type": "struct s_chaine",
                     "size": 16
                 },
                 "meta-type": "struct",
                 "fields": [
                     {
-                        "field_name": "A",
+                        "field_name": "valeur",
                         "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x5555557562a0",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
                         "type": "int",
                         "size": 4,
                         "value": "2",
                         "is_pointer": false
+                    },
+                    {
+                        "field_name": "suivant",
+                        "bitpos": 64,
+                        "type": "struct s_chaine *",
+                        "size": 8,
+                        "value": "0x0",
+                        "is_pointer": true
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x5555557562a0",
+                    "address": "0x84022c0",
                     "symbol_name": null,
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
+                    "type": "chaine",
+                    "raw_type": "struct s_chaine",
                     "size": 16
                 },
                 "meta-type": "struct",
                 "fields": [
                     {
-                        "field_name": "A",
+                        "field_name": "valeur",
                         "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x7fffffffdbf0",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
                         "type": "int",
                         "size": 4,
-                        "value": "3",
+                        "value": "0",
                         "is_pointer": false
+                    },
+                    {
+                        "field_name": "suivant",
+                        "bitpos": 64,
+                        "type": "struct s_chaine *",
+                        "size": 8,
+                        "value": "0x0",
+                        "is_pointer": true
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x7fffffffdb24",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "2"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb28",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x5555557562a0",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb54",
-                    "symbol_name": "nbCel",
+                    "address": "0x7ffffffedd64",
+                    "symbol_name": "int_para",
                     "type": "int",
                     "raw_type": "int",
                     "size": 4
@@ -741,193 +850,166 @@ function ouvrirJSON(sys,message){
             },
             {
                 "base": {
-                    "address": "0x7fffffffdb58",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
+                    "address": "0x7ffffffedd68",
+                    "symbol_name": "chaine_para",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x555555756280",
-                "target_type": "Bonjour"
+                "target": "0x84022a0",
+                "target_type": "chaine"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdb68",
-                    "symbol_name": "suiv",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
+                    "address": "0x7ffffffedd78",
+                    "symbol_name": "nouvelleChaine",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x5555557562a0",
-                "target_type": "Bonjour"
+                "target": "0x84022c0",
+                "target_type": "chaine"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdb84",
-                    "symbol_name": "nbCel",
+                    "address": "0x7ffffffedd94",
+                    "symbol_name": "int_para",
                     "type": "int",
                     "raw_type": "int",
                     "size": 4
                 },
                 "meta-type": "primitive",
-                "value": "4"
+                "value": "2"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdb88",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
+                    "address": "0x7ffffffedd98",
+                    "symbol_name": "chaine_para",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x555555756260",
-                "target_type": "Bonjour"
+                "target": "0x8402280",
+                "target_type": "chaine"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdb98",
-                    "symbol_name": "suiv",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
+                    "address": "0x7ffffffedda8",
+                    "symbol_name": "nouvelleChaine",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x555555756280",
-                "target_type": "Bonjour"
+                "target": "0x84022a0",
+                "target_type": "chaine"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdbb4",
-                    "symbol_name": "nbCel",
+                    "address": "0x7ffffffeddc4",
+                    "symbol_name": "int_para",
                     "type": "int",
                     "raw_type": "int",
                     "size": 4
                 },
                 "meta-type": "primitive",
-                "value": "5"
+                "value": "1"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdbb8",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
+                    "address": "0x7ffffffeddc8",
+                    "symbol_name": "chaine_para",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x7fffffffdbf0",
-                "target_type": "Bonjour"
+                "target": "0x8402260",
+                "target_type": "chaine"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdbc8",
-                    "symbol_name": "suiv",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
+                    "address": "0x7ffffffeddd8",
+                    "symbol_name": "nouvelleChaine",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x555555756260",
-                "target_type": "Bonjour"
+                "target": "0x8402280",
+                "target_type": "chaine"
             },
             {
                 "base": {
-                    "address": "0x7fffffffdbec",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
+                    "address": "0x7ffffffeddf8",
+                    "symbol_name": "maChaine",
+                    "type": "chaine *",
+                    "raw_type": "chaine *",
+                    "size": 8
                 },
-                "meta-type": "primitive",
-                "value": "5"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdbf0",
-                    "symbol_name": "Cqfd",
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "meta-type": "struct",
-                "fields": [
-                    {
-                        "field_name": "A",
-                        "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x555555756260",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
-                        "type": "int",
-                        "size": 4,
-                        "value": "0",
-                        "is_pointer": false
-                    }
-                ]
+                "meta-type": "pointer",
+                "target": "0x8402260",
+                "target_type": "chaine"
             }
         ],
         "edges": [
             [
-                "0x555555756260",
-                "0x555555756280",
-                "A"
+                "0x8402260",
+                "0x8402280",
+                "suivant"
             ],
             [
-                "0x555555756280",
-                "0x5555557562a0",
-                "A"
+                "0x8402280",
+                "0x84022a0",
+                "suivant"
             ],
             [
-                "0x5555557562a0",
-                "0x7fffffffdbf0",
-                "A"
+                "0x84022a0",
+                null,
+                "suivant"
             ],
             [
-                "0x7fffffffdb28",
-                "0x5555557562a0",
+                "0x84022c0",
+                null,
+                "suivant"
+            ],
+            [
+                "0x7ffffffedd68",
+                "0x84022a0",
                 null
             ],
             [
-                "0x7fffffffdb58",
-                "0x555555756280",
+                "0x7ffffffedd78",
+                "0x84022c0",
                 null
             ],
             [
-                "0x7fffffffdb68",
-                "0x5555557562a0",
+                "0x7ffffffedd98",
+                "0x8402280",
                 null
             ],
             [
-                "0x7fffffffdb88",
-                "0x555555756260",
+                "0x7ffffffedda8",
+                "0x84022a0",
                 null
             ],
             [
-                "0x7fffffffdb98",
-                "0x555555756280",
+                "0x7ffffffeddc8",
+                "0x8402260",
                 null
             ],
             [
-                "0x7fffffffdbb8",
-                "0x7fffffffdbf0",
+                "0x7ffffffeddd8",
+                "0x8402280",
                 null
             ],
             [
-                "0x7fffffffdbc8",
-                "0x555555756260",
+                "0x7ffffffeddf8",
+                "0x8402260",
                 null
-            ],
-            [
-                "0x7fffffffdbf0",
-                "0x555555756260",
-                "A"
             ]
         ],
         "stack": [
@@ -935,86 +1017,68 @@ function ouvrirJSON(sys,message){
                 "name": "main",
                 "variables": [
                     {
-                        "name": "Cqfd",
-                        "address": "0x7fffffffdbf0"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdbec"
+                        "name": "maChaine",
+                        "address": "0x7ffffffeddf8"
                     }
                 ]
             },
             {
-                "name": "init_rec",
+                "name": "somme",
                 "variables": [
                     {
-                        "name": "suiv",
-                        "address": "0x7fffffffdbc8"
+                        "name": "nouvelleChaine",
+                        "address": "0x7ffffffeddd8"
                     },
                     {
-                        "name": "c",
-                        "address": "0x7fffffffdbb8"
+                        "name": "chaine_para",
+                        "address": "0x7ffffffeddc8"
                     },
                     {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdbb4"
+                        "name": "int_para",
+                        "address": "0x7ffffffeddc4"
                     }
                 ]
             },
             {
-                "name": "init_rec",
+                "name": "somme",
                 "variables": [
                     {
-                        "name": "suiv",
-                        "address": "0x7fffffffdb98"
+                        "name": "nouvelleChaine",
+                        "address": "0x7ffffffedda8"
                     },
                     {
-                        "name": "c",
-                        "address": "0x7fffffffdb88"
+                        "name": "chaine_para",
+                        "address": "0x7ffffffedd98"
                     },
                     {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdb84"
+                        "name": "int_para",
+                        "address": "0x7ffffffedd94"
                     }
                 ]
             },
             {
-                "name": "init_rec",
+                "name": "somme",
                 "variables": [
                     {
-                        "name": "suiv",
-                        "address": "0x7fffffffdb68"
+                        "name": "nouvelleChaine",
+                        "address": "0x7ffffffedd78"
                     },
                     {
-                        "name": "c",
-                        "address": "0x7fffffffdb58"
+                        "name": "chaine_para",
+                        "address": "0x7ffffffedd68"
                     },
                     {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdb54"
-                    }
-                ]
-            },
-            {
-                "name": "init_rec",
-                "variables": [
-                    {
-                        "name": "c",
-                        "address": "0x7fffffffdb28"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdb24"
+                        "name": "int_para",
+                        "address": "0x7ffffffedd64"
                     }
                 ]
             }
         ]
     }
-    
 
-    CreerStack();
     retour = creerNoeud(dataJSON);
-	creerNode(sys,retour)
+    creerNode(sys,retour)
+    CreerStack();
 }
 
 
@@ -1026,6 +1090,7 @@ function CreerStack(){
     var comptenomframe = []
     dataJSON.stack.forEach(element => {
         var ajout = "";
+        var compte = 0;
         if(!appartientListe(element.name,listnomframe)){
             listnomframe.push(element.name);
             comptenomframe.push(0);
@@ -1034,9 +1099,20 @@ function CreerStack(){
             comptenomframe[positionList(element.name,listnomframe)]++;
             ajout = "(" +  (comptenomframe[positionList(element.name,listnomframe)] + 1) + ")";
         }
-        
         element.name+=ajout;
-        listStack.push(Object.assign({deplie:false},element));
+
+        //nombre d'objet dans cette stack
+        element.variables.forEach(variable => {
+            if(sys.getNode(variable.address).data.typeGenerique == "struct"){
+                compte++;
+                sys.getNode(variable.address).data.champs.forEach(champ => {
+                   compte++;
+               });
+            }
+            else compte++
+        });
+
+        listStack.push(Object.assign({deplie:false,nbElem:compte},element));
         element.variables.forEach(variable => {
             listVariablesPile.push(variable);
         });
@@ -1064,7 +1140,7 @@ function creerNoeud(data){
     var listeNoeud = [];
     data.nodes.forEach(element => {
         var type = element.base.type
-        listeNoeud.push(new noeud(element.base.address,type,element.base.symbol_name,element.elements,element["meta-type"],element.fields,element.value))
+        listeNoeud.push(new noeud(element.base.address,type,element.base.symbol_name,element.elements,element["meta-type"],element.fields,element.value,element.is_pointer))
     });
 
     //la liste est créé, il va falloir maintenant creer les structures
@@ -1122,14 +1198,17 @@ function creerNode(sys,liste){
         }
         //PILE
         var actifPile = true;
-        /*
-        if(pileActive && (element.typeGenerique == "string" || element.typeGenerique == "primitive" || element.typeGenerique == "pointer")){
-            actifPile = false
-        }*/
+        
+        //si la pile est active au coup d'avant
+        if(pileActive){
+            actifPile = casPileActive(element.adresse);
+        }
         /////////////////////////////////////////////////////////
-        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element.typeGenerique,nomsPointeurs:element.nomsPointeurs,champs:element.champs,valeurScalaire:element.valeurScalaire});
+        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element.typeGenerique,nomsPointeurs:element.nomsPointeurs,champs:element.champs,valeurScalaire:element.valeurScalaire,is_pointer:element.is_pointer});
+        
     });
 
+    
 	liste.forEach(element => {
 		element.enfants.forEach(enfant => {
             var pos = 0;
@@ -1142,8 +1221,20 @@ function creerNode(sys,liste){
             }
             sys.addEdge(element.adresse,enfant.adresse,{parent:element.adresse,enfant:enfant.adresse,compte_field:pos,max_field:maxfield});
 		});
-    });
+    });   
 }
+
+
+function casPileActive(element){
+    var retour = true;
+        listVariablesPile.forEach(variable => {
+            if(element == variable.address){
+                retour = false;
+            }
+        });
+    return retour;
+}
+
 
 function randomFixe(a){
     let retour = Math.random();
@@ -1323,7 +1414,7 @@ document.getElementById("sliderTab").style.width = 0.8 * screen.height;
 document.getElementById("sliderTab").value = 0;
 
 document.getElementById("sliderTab").style.top ="10px" 
-document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.8  + "px" 
+document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.81  + "px" 
 document.getElementById("sliderTab").style.visibility = "hidden"
 
 ///POSITIONNEMENT SLIDER PILE
@@ -1331,8 +1422,7 @@ document.getElementById("sliderPile").style.width = 0.75 * screen.height;
 document.getElementById("sliderPile").style.height = "5px";
 document.getElementById("sliderPile").value = 0;
 
-document.getElementById("sliderPile").style.top ="7%"
-document.getElementById("sliderPile").style.left = "-19.5%"
+document.getElementById("sliderPile").style.left = "-" + document.getElementById("viewport").width/15 * 2.7 +"px" //"-17.5%"
 document.getElementById("sliderPile").style.visibility = "hidden"
 
 function versTableau(){
