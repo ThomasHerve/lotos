@@ -11,7 +11,6 @@ var tailleCarre = 2.5
 var compteIter = -1;
 var position = 0;
 var tailleProgramme = undefined;
-var bloc = false;
 var dataJSON;
 var w;
 var decale;
@@ -381,14 +380,24 @@ class Renderer{
                             sous_ctx.restore();
                             //////////////////////////
                             element.variables.forEach(variable => {
-                                CreerRectangle(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY,donneCouleur(sys.getNode(variable.address).data.type),"black",1)
+                                var color = donneCouleur(sys.getNode(variable.address).data.type)
+                                if(sys.getNode(variable.address).data.typeGenerique == "struct")color = "#AAAAAA"
+                                CreerRectangle(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY,color,"black",1)
                                 let textVar = variable.name
                                 if(sys.getNode(variable.address).data.typeGenerique != "pointer" && sys.getNode(variable.address).data.typeGenerique != "struct")textVar+= " : " + sys.getNode(variable.address).data.valeurScalaire;
                                 CreerText(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),Math.min(25,Math.max(tailleX/textVar.length,8)),"Arial","black",textVar,0,tailleX);
                                 compte_position+=tailleY;
+                                //le cas structure dans la pile
                                 if(sys.getNode(variable.address).data.typeGenerique == "struct"){
                                     sys.getNode(variable.address).data.champs.forEach(champ =>{
-                                        CreerRectangle(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY,donneCouleur(sys.getNode(variable.address).data.type),"black",1)
+                                        CreerRectangle(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY,donneCouleur(sys.getNode(variable.address).data.type),"black",1);
+                                        CreerRectangle(sous_ctx,2.5 * tailleX/8,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX/8,tailleY,"#AAAAAA","#AAAAAA",2);
+                                        sous_ctx.beginPath();
+                                        sous_ctx.lineWidth = 1;
+                                        sous_ctx.strokeStyle = "black"
+                                        sous_ctx.moveTo(3 * tailleX/8,compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY))
+                                        sous_ctx.lineTo(3 * tailleX/8,tailleY + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY))
+                                        sous_ctx.stroke();
                                         textVar = champ.field_name;
                                         if(!champ.is_pointer)textVar+= " : " + champ.value;
                                         CreerText(sous_ctx,tailleX/2 + (tailleX)/4,tailleY/2 + compte_position -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),Math.min(25,Math.max(tailleX/textVar.length,8)),"Arial","black",textVar,0,tailleX);
@@ -397,6 +406,7 @@ class Renderer{
                                     //bordure
                                     sous_ctx.beginPath();
                                     sous_ctx.lineWidth = 4;
+                                    sous_ctx.strokeStyle = "black"
                                     sous_ctx.rect((tailleX)/4,-(tailleY) + (compte_position  - sys.getNode(variable.address).data.champs.length * tailleY) -  decalePile(14,totalBlocs,document.getElementById("sliderPile").value,tailleY),tailleX,tailleY * (1+sys.getNode(variable.address).data.champs.length));
                                     sous_ctx.stroke();
                                 }
@@ -568,7 +578,10 @@ class Renderer{
             if (dragged && dragged.node !== null && dragged.node.data.active){
               dragged.node.fixed = true;
               nodeSelectionne = dragged.node.name;
-              if(di == 0 && dragged.node.data.typeGenerique != "array")dragged.node.data.deplie = !dragged.node.data.deplie
+              if(di == 0 && dragged.node.data.typeGenerique != "array"){
+                  //dragged.node.data.deplie = !dragged.node.data.deplie
+                depliageRecursif(!dragged.node.data.deplie,dragged.node);
+              }
               if(di == 0 && etat == 1 && dragged.node.data.typeGenerique != "array")versTableau();
               if(dragged.node.data.tableau != undefined){
                   nodeTab = dragged.node;
@@ -608,6 +621,25 @@ class Renderer{
       }
 }
 
+////////////////////EFFETS SUR ARBOR ///////////////
+
+var listeRecursive = [];
+function depliageRecursif(etatOrigine,node){
+    listeRecursive = [];
+    depliageRecursifEffectif(etatOrigine,node,undefined);
+}
+
+function depliageRecursifEffectif(etatOrigine,node,previous){
+    node.data.deplie = etatOrigine;
+    if(previous)listeRecursive.push(previous);
+    sys.eachEdge(function(edge, pt1, pt2){
+        if(sys.getNode(edge.data.parent) == node && !appartientListe(node,listeRecursive)){
+            depliageRecursifEffectif(etatOrigine,sys.getNode(edge.data.enfant),edge);
+        }
+    })
+}
+
+
 
 ////////////////////INIT/////////////////////////////
 
@@ -616,7 +648,7 @@ var canvas = document.getElementById('viewport')//on recupere le canvas
 var ctx = document.getElementById('viewport').getContext('2d');//son contexte (permet de dessiner)
 var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
 var nodeTab = null;//variable contenant la derniere node cliquer de type array
-var sys = arbor.ParticleSystem(100, 200, 0.8);//on declare un particleSysteme qui permet le temps reel
+var sys = arbor.ParticleSystem(10000, 500, 0.5);//on declare un particleSysteme qui permet le temps reel
 sys.parameters({gravity:true})//on ajoute la gravité
 sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on créé le renderer du particleSysteme
 var listeCouleur = [];//chaque structure
@@ -701,8 +733,8 @@ function ouvrirJSON(sys,message){
     dataJSON = JSON.parse(message);
     dataJSON = {
         "location": {
-            "file": "testrecursif.c",
-            "line": 18
+            "file": "cycle.c",
+            "line": 12
         },
         "nodes": [
             {
@@ -715,167 +747,104 @@ function ouvrirJSON(sys,message){
                 },
                 "meta-type": "array",
                 "dynamic": true,
-                "element_type": "uint32_t",
+                "element_type": "chaine tab",
                 "element_size": 4,
                 "n_elements": 3,
                 "is_pointer": true,
                 "elements": [
-                    "0x8402260",
-                    "0x8402280",
-                    "0x84022a0"
+                    "0x555555756260",
+                    "0x555555756280",
+                    "0x5555557562a0"
                 ]
             },
             {
                 "base": {
-                    "address": "0x8402260",
+                    "address": "0x555555756260",
                     "symbol_name": null,
-                    "type": "chaine",
-                    "raw_type": "struct s_chaine",
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
                     "size": 16
                 },
                 "meta-type": "struct",
                 "fields": [
                     {
-                        "field_name": "valeur",
+                        "field_name": "A",
                         "bitpos": 0,
-                        "type": "int",
-                        "size": 4,
-                        "value": "0",
-                        "is_pointer": false
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x555555756280",
+                        "is_pointer": true
                     },
                     {
-                        "field_name": "suivant",
+                        "field_name": "B",
                         "bitpos": 64,
-                        "type": "struct s_chaine *",
-                        "size": 8,
-                        "value": "0x8402280",
-                        "is_pointer": true
-                    }
-                ]
-            },
-            {
-                "base": {
-                    "address": "0x8402280",
-                    "symbol_name": null,
-                    "type": "struct s_chaine",
-                    "raw_type": "struct s_chaine",
-                    "size": 16
-                },
-                "meta-type": "struct",
-                "fields": [
-                    {
-                        "field_name": "valeur",
-                        "bitpos": 0,
                         "type": "int",
                         "size": 4,
                         "value": "1",
                         "is_pointer": false
-                    },
-                    {
-                        "field_name": "suivant",
-                        "bitpos": 64,
-                        "type": "struct s_chaine *",
-                        "size": 8,
-                        "value": "0x84022a0",
-                        "is_pointer": true
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x84022a0",
+                    "address": "0x555555756280",
                     "symbol_name": null,
-                    "type": "struct s_chaine",
-                    "raw_type": "struct s_chaine",
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
                     "size": 16
                 },
                 "meta-type": "struct",
                 "fields": [
                     {
-                        "field_name": "valeur",
+                        "field_name": "A",
                         "bitpos": 0,
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x5555557562a0",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "B",
+                        "bitpos": 64,
                         "type": "int",
                         "size": 4,
                         "value": "2",
                         "is_pointer": false
-                    },
-                    {
-                        "field_name": "suivant",
-                        "bitpos": 64,
-                        "type": "struct s_chaine *",
-                        "size": 8,
-                        "value": "0x0",
-                        "is_pointer": true
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x84022c0",
+                    "address": "0x5555557562a0",
                     "symbol_name": null,
-                    "type": "chaine",
-                    "raw_type": "struct s_chaine",
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
                     "size": 16
                 },
                 "meta-type": "struct",
                 "fields": [
                     {
-                        "field_name": "valeur",
+                        "field_name": "A",
                         "bitpos": 0,
-                        "type": "int",
-                        "size": 4,
-                        "value": "0",
-                        "is_pointer": false
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x7fffffffdbf0",
+                        "is_pointer": true
                     },
                     {
-                        "field_name": "suivant",
+                        "field_name": "B",
                         "bitpos": 64,
-                        "type": "struct s_chaine *",
-                        "size": 8,
-                        "value": "0x0",
-                        "is_pointer": true
+                        "type": "int",
+                        "size": 4,
+                        "value": "3",
+                        "is_pointer": false
                     }
                 ]
             },
             {
                 "base": {
-                    "address": "0x7ffffffedd64",
-                    "symbol_name": "int_para",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "3"
-            },
-            {
-                "base": {
-                    "address": "0x7ffffffedd68",
-                    "symbol_name": "chaine_para",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x84022a0",
-                "target_type": "chaine"
-            },
-            {
-                "base": {
-                    "address": "0x7ffffffedd78",
-                    "symbol_name": "nouvelleChaine",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x84022c0",
-                "target_type": "chaine"
-            },
-            {
-                "base": {
-                    "address": "0x7ffffffedd94",
-                    "symbol_name": "int_para",
+                    "address": "0x7fffffffdb24",
+                    "symbol_name": "nbCel",
                     "type": "int",
                     "raw_type": "int",
                     "size": 4
@@ -885,131 +854,216 @@ function ouvrirJSON(sys,message){
             },
             {
                 "base": {
-                    "address": "0x7ffffffedd98",
-                    "symbol_name": "chaine_para",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
+                    "address": "0x7fffffffdb28",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x8402280",
-                "target_type": "chaine"
+                "target": "0x5555557562a0",
+                "target_type": "Bonjour"
             },
             {
                 "base": {
-                    "address": "0x7ffffffedda8",
-                    "symbol_name": "nouvelleChaine",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x84022a0",
-                "target_type": "chaine"
-            },
-            {
-                "base": {
-                    "address": "0x7ffffffeddc4",
-                    "symbol_name": "int_para",
+                    "address": "0x7fffffffdb54",
+                    "symbol_name": "nbCel",
                     "type": "int",
                     "raw_type": "int",
                     "size": 4
                 },
                 "meta-type": "primitive",
-                "value": "1"
+                "value": "3"
             },
             {
                 "base": {
-                    "address": "0x7ffffffeddc8",
-                    "symbol_name": "chaine_para",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
+                    "address": "0x7fffffffdb58",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x8402260",
-                "target_type": "chaine"
+                "target": "0x555555756280",
+                "target_type": "Bonjour"
             },
             {
                 "base": {
-                    "address": "0x7ffffffeddd8",
-                    "symbol_name": "nouvelleChaine",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
+                    "address": "0x7fffffffdb68",
+                    "symbol_name": "suiv",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x8402280",
-                "target_type": "chaine"
+                "target": "0x5555557562a0",
+                "target_type": "Bonjour"
             },
             {
                 "base": {
-                    "address": "0x7ffffffeddf8",
-                    "symbol_name": "maChaine",
-                    "type": "chaine *",
-                    "raw_type": "chaine *",
+                    "address": "0x7fffffffdb84",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "4"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdb88",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
                     "size": 8
                 },
                 "meta-type": "pointer",
-                "target": "0x8402260",
-                "target_type": "chaine"
+                "target": "0x555555756260",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdb98",
+                    "symbol_name": "suiv",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756280",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbb4",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "5"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbb8",
+                    "symbol_name": "c",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x7fffffffdbf0",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbc8",
+                    "symbol_name": "suiv",
+                    "type": "Bonjour *",
+                    "raw_type": "Bonjour *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756260",
+                "target_type": "Bonjour"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbec",
+                    "symbol_name": "nbCel",
+                    "type": "int",
+                    "raw_type": "int",
+                    "size": 4
+                },
+                "meta-type": "primitive",
+                "value": "5"
+            },
+            {
+                "base": {
+                    "address": "0x7fffffffdbf0",
+                    "symbol_name": "Cqfd",
+                    "type": "Bonjour",
+                    "raw_type": "struct A",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "A",
+                        "bitpos": 0,
+                        "type": "Bonjour *",
+                        "size": 8,
+                        "value": "0x555555756260",
+                        "is_pointer": true
+                    },
+                    {
+                        "field_name": "B",
+                        "bitpos": 64,
+                        "type": "int",
+                        "size": 4,
+                        "value": "0",
+                        "is_pointer": false
+                    }
+                ]
             }
         ],
         "edges": [
             [
-                "0x8402260",
-                "0x8402280",
-                "suivant"
+                "0x555555756260",
+                "0x555555756280",
+                "A"
             ],
             [
-                "0x8402280",
-                "0x84022a0",
-                "suivant"
+                "0x555555756280",
+                "0x5555557562a0",
+                "A"
             ],
             [
-                "0x84022a0",
-                null,
-                "suivant"
+                "0x5555557562a0",
+                "0x7fffffffdbf0",
+                "A"
             ],
             [
-                "0x84022c0",
-                null,
-                "suivant"
-            ],
-            [
-                "0x7ffffffedd68",
-                "0x84022a0",
+                "0x7fffffffdb28",
+                "0x5555557562a0",
                 null
             ],
             [
-                "0x7ffffffedd78",
-                "0x84022c0",
+                "0x7fffffffdb58",
+                "0x555555756280",
                 null
             ],
             [
-                "0x7ffffffedd98",
-                "0x8402280",
+                "0x7fffffffdb68",
+                "0x5555557562a0",
                 null
             ],
             [
-                "0x7ffffffedda8",
-                "0x84022a0",
+                "0x7fffffffdb88",
+                "0x555555756260",
                 null
             ],
             [
-                "0x7ffffffeddc8",
-                "0x8402260",
+                "0x7fffffffdb98",
+                "0x555555756280",
                 null
             ],
             [
-                "0x7ffffffeddd8",
-                "0x8402280",
+                "0x7fffffffdbb8",
+                "0x7fffffffdbf0",
                 null
             ],
             [
-                "0x7ffffffeddf8",
-                "0x8402260",
+                "0x7fffffffdbc8",
+                "0x555555756260",
                 null
+            ],
+            [
+                "0x7fffffffdbf0",
+                "0x555555756260",
+                "A"
             ]
         ],
         "stack": [
@@ -1017,65 +1071,81 @@ function ouvrirJSON(sys,message){
                 "name": "main",
                 "variables": [
                     {
-                        "name": "maChaine",
-                        "address": "0x7ffffffeddf8"
+                        "name": "Cqfd",
+                        "address": "0x7fffffffdbf0"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdbec"
                     }
                 ]
             },
             {
-                "name": "somme",
+                "name": "init_rec",
                 "variables": [
                     {
-                        "name": "nouvelleChaine",
-                        "address": "0x7ffffffeddd8"
+                        "name": "suiv",
+                        "address": "0x7fffffffdbc8"
                     },
                     {
-                        "name": "chaine_para",
-                        "address": "0x7ffffffeddc8"
+                        "name": "c",
+                        "address": "0x7fffffffdbb8"
                     },
                     {
-                        "name": "int_para",
-                        "address": "0x7ffffffeddc4"
+                        "name": "nbCel",
+                        "address": "0x7fffffffdbb4"
                     }
                 ]
             },
             {
-                "name": "somme",
+                "name": "init_rec",
                 "variables": [
                     {
-                        "name": "nouvelleChaine",
-                        "address": "0x7ffffffedda8"
+                        "name": "suiv",
+                        "address": "0x7fffffffdb98"
                     },
                     {
-                        "name": "chaine_para",
-                        "address": "0x7ffffffedd98"
+                        "name": "c",
+                        "address": "0x7fffffffdb88"
                     },
                     {
-                        "name": "int_para",
-                        "address": "0x7ffffffedd94"
+                        "name": "nbCel",
+                        "address": "0x7fffffffdb84"
                     }
                 ]
             },
             {
-                "name": "somme",
+                "name": "init_rec",
                 "variables": [
                     {
-                        "name": "nouvelleChaine",
-                        "address": "0x7ffffffedd78"
+                        "name": "suiv",
+                        "address": "0x7fffffffdb68"
                     },
                     {
-                        "name": "chaine_para",
-                        "address": "0x7ffffffedd68"
+                        "name": "c",
+                        "address": "0x7fffffffdb58"
                     },
                     {
-                        "name": "int_para",
-                        "address": "0x7ffffffedd64"
+                        "name": "nbCel",
+                        "address": "0x7fffffffdb54"
+                    }
+                ]
+            },
+            {
+                "name": "init_rec",
+                "variables": [
+                    {
+                        "name": "c",
+                        "address": "0x7fffffffdb28"
+                    },
+                    {
+                        "name": "nbCel",
+                        "address": "0x7fffffffdb24"
                     }
                 ]
             }
         ]
     }
-
     retour = creerNoeud(dataJSON);
     creerNode(sys,retour)
     CreerStack();
@@ -1384,7 +1454,6 @@ function CreerTexteNonCentre(ctx,coordX,coordY,Taille,police,couleur,texte,saut,
  * @param {string} police la police (ex : Arial)
  */
 function CreerRectangleText(ctx,coordX,coordY,TailleX,TailleY,couleur,texte,police){
-    if(couleur == "#000000")console.error("un carre textuel ne peut etre noir");
     CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur);
     var tailleMax = TailleX - 2;
     var tailleText = TailleY/(texte.length/3);
@@ -1462,34 +1531,14 @@ document.getElementById("plus10").onclick = plus10;
 document.getElementById("moins1").onclick = moins1;
 
 
+function AvanceGDB(i){
+    connection.send("n " + i);
+    connection.send("print_memory -j");
+}
+
+
 function plus1(){
-    if(position == 0)return;
-    if(bloc)return;
-    document.getElementById("moins1").style.backgroundColor = "red"
-    if(position<listeJSON.length){
-        position++;
-        ouvrirJSON(sys,listeJSON[position-1]);
-        if(tailleProgramme && position+10>=tailleProgramme){
-            document.getElementById("plus10").style.backgroundColor = "#AAAAAA";
-        }
-        if(tailleProgramme && position+5>=tailleProgramme){
-            document.getElementById("plus5").style.backgroundColor = "#AAAAAA";
-        }
-        if(tailleProgramme && position==tailleProgramme){
-            document.getElementById("plus1").style.backgroundColor = "#AAAAAA";
-        }
-    }
-    else if(fin){
-        return;
-    }else{
-        compteIter = 1;
-        bloc = true;
-        connection.send("n");
-        connection.send("print_memory -j");
-        sys.renderer.redraw()
-    }
-    document.getElementById("pas").innerHTML = "Pas actuel : " + position;
-    document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+    plus(1)
 }
 
 function plus5(){
@@ -1502,7 +1551,6 @@ function plus10(){
 
 function plus(nb){
     if(position == 0)return;
-    if(bloc)return;
     if(tailleProgramme && position+nb<=tailleProgramme){
         position+=nb;
         ouvrirJSON(sys,listeJSON[position-1]);
@@ -1526,19 +1574,13 @@ function plus(nb){
             nb -= (position+nb - listeJSON.length);
         }
         compteIter = nb;
-        var dep = 0;
-        bloc = true;
-        for(let i = dep;i < nb;i++){
-            connection.send("n");
-            connection.send("print_memory -j");
-        }
+        AvanceGDB(nb);
         sys.renderer.redraw()
     }
 }
 
 function moins1(){
     if(position == 0)return;
-    if(bloc)return;
     if(position>1){
         position--;
         ouvrirJSON(sys,listeJSON[position-1]);
@@ -1555,6 +1597,9 @@ function moins1(){
     document.getElementById("pas").innerHTML = "Pas actuel : " + position;
     document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
 }
+
+
+
 
 
 function timeLine(){

@@ -1,0 +1,26 @@
+.button{
+    background-color: rgb(175, 187, 11);
+    border: "1px";
+    color: black;
+    padding: 10px 30px;
+    font-size: 10px;
+    position: relative;
+    left : 45%;
+}
+
+.image{
+    width: 30px;
+    height: 30px;
+}
+
+.entry{
+    position: relative;
+    left : 45%;
+}
+
+.titre {
+    text-align: center;
+    font-size: 35;
+	margin-top: 2%;
+	margin-bottom: 4%;
+}
