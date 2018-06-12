@@ -11,9 +11,9 @@ connection.onopen = function(){
 	connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/Aurel/simple_arbre_B");
 	connection.send("n");
 	connection.send("print_memory -j")
+	document.getElementById("is_connected").style.color = "green";
+	document.getElementById("is_connected").innerHTML = "Connected !"
 };
-
-//connection.send("coucou");
 
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */

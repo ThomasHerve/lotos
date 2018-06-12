@@ -15,3 +15,9 @@ function envoie(){
         connection.send(document.getElementById("input").value);
     }
 }
+
+document.onkeyup = function(e) {
+  if(e.which == 13){
+    envoie();
+  }
+};

@@ -12,6 +12,7 @@ connection.onopen = function(){
 
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */
+	
 	document.getElementById("msg").innerHTML = e.data;
 	if(!fichier_valide){
 		if(e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized"){

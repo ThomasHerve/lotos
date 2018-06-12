@@ -210,6 +210,9 @@ class Renderer{
                             that.Vecteur(this.renderer.ctx,x1 - dist/2 - 11,y1,x1 - dist/2 - 10,y1)
                         }
                         else{
+                        if(parsDePile){
+                            y1 +=  canvas.height/15 * (edge.data.compte_field+1);
+                        }
                         this.renderer.ctx.strokeStyle = donneCouleur(pS.getNode(edge.data.parent).data.type)
                         
                         if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string" || versPile)){
@@ -229,9 +232,15 @@ class Renderer{
                             var pointY = y2;
                         }
                         else{
+                            if(!versPile){
                             var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
                             var pointX = x2 + ((x1-x2) * dist) /d
                             var pointY = y2 + ((y1-y2) * dist) /d
+                            }
+                            else{
+                                var pointX = x2;
+                                var pointY = y2; 
+                            }
                         }
                         
                         this.renderer.ctx.lineWidth = 1;
@@ -264,9 +273,15 @@ class Renderer{
                             var pointY = y2;
                         }
                         else{
-                            var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
-                            var pointX = x2 + ((x1-x2) * dist) /d
-                            var pointY = y2 + ((y1-y2) * dist) /d
+                            if(!versPile){
+                                var d = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2))
+                                var pointX = x2 + ((x1-x2) * dist) /d
+                                var pointY = y2 + ((y1-y2) * dist) /d
+                            }
+                            else{
+                                var pointX = x2;
+                                var pointY = y2; 
+                            }
                         }
                         var departX = x1
                         var departY = y1
@@ -579,8 +594,8 @@ class Renderer{
               dragged.node.fixed = true;
               nodeSelectionne = dragged.node.name;
               if(di == 0 && dragged.node.data.typeGenerique != "array"){
-                  //dragged.node.data.deplie = !dragged.node.data.deplie
-                depliageRecursif(!dragged.node.data.deplie,dragged.node);
+                  if(!rec_on)dragged.node.data.deplie = !dragged.node.data.deplie
+                  else depliageRecursif(!dragged.node.data.deplie,dragged.node);
               }
               if(di == 0 && etat == 1 && dragged.node.data.typeGenerique != "array")versTableau();
               if(dragged.node.data.tableau != undefined){
@@ -731,6 +746,7 @@ function ouvrirJSON(sys,message){
     })
     listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"]
     dataJSON = JSON.parse(message);
+    /*
     dataJSON = {
         "location": {
             "file": "cycle.c",
@@ -1145,7 +1161,7 @@ function ouvrirJSON(sys,message){
                 ]
             }
         ]
-    }
+    }*/
     retour = creerNoeud(dataJSON);
     creerNode(sys,retour)
     CreerStack();
@@ -1468,6 +1484,15 @@ function clear(){
 	listeCarre = [];
 }
 
+var rec_on = true;
+
+function recOn(){
+    if(rec_on){
+        document.getElementById("deploiement").style.backgroundColor = "red"
+    }else document.getElementById("deploiement").style.backgroundColor = "#4CAF50"
+    rec_on = !rec_on;
+}
+
 //BOUTONS
 document.getElementById("viewport").width =  0.98 * screen.width;
 document.getElementById("viewport").height = 0.8 * screen.height;
@@ -1477,21 +1502,22 @@ document.getElementById("versTableau").onclick = versTableau;
 document.getElementById("sliderTab").oninput = refresh;
 document.getElementById("sliderPile").oninput = refresh;
 document.getElementById("dunno").onclick = SwapPile;
+document.getElementById("deploiement").onclick = recOn;
+
 
 ///POSITIONNEMENT SLIDER TAB
 document.getElementById("sliderTab").style.width = 0.8 * screen.height;
 document.getElementById("sliderTab").value = 0;
 
 document.getElementById("sliderTab").style.top ="10px" 
-document.getElementById("sliderTab").style.left = document.getElementById("viewport").width*0.81  + "px" 
+//document.getElementById("sliderTab").style.left =  0.9 * screen.availWidth + "px"//document.getElementById("viewport").width*0.81  + "px" 
 document.getElementById("sliderTab").style.visibility = "hidden"
 
 ///POSITIONNEMENT SLIDER PILE
 document.getElementById("sliderPile").style.width = 0.75 * screen.height;
 document.getElementById("sliderPile").style.height = "5px";
 document.getElementById("sliderPile").value = 0;
-
-document.getElementById("sliderPile").style.left = "-" + document.getElementById("viewport").width/15 * 2.7 +"px" //"-17.5%"
+//document.getElementById("sliderPile").style.left = "-" + document.getElementById("viewport").width/15 * 2.7 +"px" //"-17.5%"
 document.getElementById("sliderPile").style.visibility = "hidden"
 
 function versTableau(){
