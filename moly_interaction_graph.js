@@ -8,7 +8,7 @@ var listeJSON = [];
 
 connection.onopen = function(){
 	console.log("Connection with gdb server opened");
-	connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/Aurel/simple_arbre_B");
+	connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/theo/dummy_list");
 	connection.send("n");
 	connection.send("print_memory -j")
 	document.getElementById("is_connected").style.color = "green";
@@ -18,7 +18,7 @@ connection.onopen = function(){
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */
 	var temp = e.data;
-	if(temp != "Error occurred in Python command: local variable 'output' referenced before assignment"){
+	if(temp != "Error occurred in Python command: local variable 'output' referenced before assignment" && temp != "Error occurred in Python command: 1"){
 		lastMessage = "";
 		for(let i = 0;i <temp.length - 2;i++){
 			if(temp[i] != "\\")lastMessage+= temp[i];

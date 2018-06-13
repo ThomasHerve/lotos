@@ -1170,10 +1170,19 @@ function ouvrirJSON(sys,message){
 
 
 function CreerStack(){
+    //ancienne liste de stack
+    var exListStack = []
+    if(listStack!=[]){
+        listStack.forEach(element => {
+            if(element.deplie)exListStack.push(element.name);
+        });
+    }
+
     listVariablesPile = [];
     listStack = [];
     var listnomframe = []
     var comptenomframe = []
+    var compte_stack = 0;
     dataJSON.stack.forEach(element => {
         var ajout = "";
         var compte = 0;
@@ -1198,10 +1207,17 @@ function CreerStack(){
             else compte++
         });
 
-        listStack.push(Object.assign({deplie:false,nbElem:compte},element));
+
+        var is_deplie = false;
+        if(appartientListe(element.name,exListStack)){
+            is_deplie = true;
+        }
+
+        listStack.push(Object.assign({deplie:is_deplie,nbElem:compte},element));
         element.variables.forEach(variable => {
             listVariablesPile.push(variable);
         });
+        compte_stack++;
     });
 
 }
