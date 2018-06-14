@@ -30,6 +30,16 @@ class Renderer{
 
 
      Norm(xA,yA,xB,yB) {return Math.sqrt(Math.pow(xB-xA,2)+Math.pow(yB-yA,2));}
+     cone(ctx,xA,yA,xB,yB,xC,yC){
+        ctx.beginPath();
+        ctx.lineWidth = 1;
+        ctx.moveTo(xA,yA);ctx.lineTo(xB,yB);
+        ctx.lineTo(xC,yC);
+        ctx.closePath();
+        ctx.fillStyle = "black"
+        ctx.fill(); 
+        ctx.stroke();
+     }
      Vecteur (ctx,xA,yA,xB,yB,ArrowLength,ArrowWidth) {
      if (ArrowLength === undefined) {ArrowLength=10;}
      if (ArrowWidth === undefined) {ArrowWidth=8;}
@@ -213,18 +223,23 @@ class Renderer{
                         }
                         this.renderer.ctx.strokeStyle = donneCouleur(pS.getNode(edge.data.parent).data.type)
                         
+                        var cote = 0;
                         if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string" || versPile)){
                             if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 -= decale/2
+                                cote = 1;//gauche
                             }
                             else if( (pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string")&& x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 += decale/2
+                                cote = 2;//droite
                             }
                             else if(y1 > y2){
                                 y2 += decale/2;
+                                cote = 3;//dessus
                             }
-                            else if(y1 < y2){
+                            else if(y1 <= y2){
                                 y2 -= decale/2;
+                                cote = 4;//dessous
                             }
                             var pointX = x2;
                             var pointY = y2;
@@ -243,7 +258,22 @@ class Renderer{
                         
                         this.renderer.ctx.lineWidth = 1;
                         if(courbe)that.VecteurCourbe(this.renderer.ctx,x1,y1,pointX,pointY)
-                        else that.Vecteur(this.renderer.ctx,x1,y1,pointX,pointY)
+                        else{
+                            if(edge.data.integre){
+                                switch(cote){
+                                    case 1:
+                                    case 2:
+                                        that.cone(this.renderer.ctx,x1,y1,pointX ,pointY - decale/2,pointX ,pointY + decale/2);
+                                    break;
+                                    case 3:
+                                    case 4:
+                                        that.cone(this.renderer.ctx,x1,y1,pointX - decale/2 ,pointY,pointX + decale/2,pointY);
+                                    break;
+                                }
+                                
+                            }
+                            else that.Vecteur(this.renderer.ctx,x1,y1,pointX,pointY);
+                        } 
                     }
                     }
                     else{
@@ -252,19 +282,24 @@ class Renderer{
                         }else{
                             x1 = x1 + decale * edge.data.compte_field;
                         }
+                        var cote = 0;
                         if(pS.getNode(edge.data.enfant).data.deplie && (pS.getNode(edge.data.enfant).data.typeGenerique == "struct" || pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string" || versPile)){
                             if(!versPile){
                             if(x1 < x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 -= decale/2
+                                cote = 1;//gauche
                             }
                             else if((pS.getNode(edge.data.enfant).data.typeGenerique == "primitive" || pS.getNode(edge.data.enfant).data.typeGenerique == "string")&& x1 > x2 && (x1-x2)*(x1-x2) > (y1-y2)*(y1-y2)){
                                 x2 += decale/2
+                                cote = 2;//droite
                             }
                             else if(y1 > y2){
                                 y2 += decale/2;
+                                cote = 3;//dessus
                             }
-                            else if(y1 < y2){
+                            else if(y1 <= y2){
                                 y2 -= decale/2;
+                                cote = 4;//dessous
                             }
                         }
                             var pointX = x2;
@@ -305,7 +340,20 @@ class Renderer{
                         else{
                             this.renderer.ctx.lineWidth = 1;
                             if(courbe)that.VecteurCourbe(this.renderer.ctx,departX, departY,pointX,pointY)
-                            else that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)
+                            else{
+                                if(edge.data.integre){
+                                    switch(cote){
+                                        case 1:
+                                        case 2:
+                                            that.cone(this.renderer.ctx,departX,departY,pointX ,pointY - decale/2,pointX ,pointY + decale/2);
+                                        break;
+                                        case 3:
+                                        case 4:
+                                            that.cone(this.renderer.ctx,departX,departY,pointX - decale/2 ,pointY,pointX + decale/2,pointY);
+                                        break;
+                                    }
+                                }
+                                else that.Vecteur(this.renderer.ctx,departX, departY,pointX,pointY)}
                             }
                         }                   
                 }
@@ -731,7 +779,6 @@ class noeud{
         this.symbol_name = symbol_name;
         this.tableau = tableau;7
         this.typeGenerique = typeGenerique;
-        this.nomsPointeurs = []
         this.champs = champs
         this.valeurScalaire = valeurScalaire;
         this.is_pointer = is_pointer;
@@ -739,7 +786,6 @@ class noeud{
     addEnfant(nouveauNoeud,nomP){
         this.enfants.push(nouveauNoeud);
         this.nbEnfants++;
-        this.nomsPointeurs.push(nomP);
     }
     addParent(nouveauNoeud){
         this.parents.push(nouveauNoeud);
@@ -775,15 +821,196 @@ function ouvrirJSON(sys,message){
     sys.eachNode(function(node, pt){
         sys.pruneNode(node);
     })
+
     /*
-    dataJSON = 
+    dataJSON = {
+        "location": {
+          "file": "dummy_list.c",
+          "line": 28
+        },
+        "nodes": [
+          {
+            "base": {
+              "address": "0x400670",
+              "symbol_name": null,
+              "type": "struct cell",
+              "raw_type": "struct cell",
+              "size": 16
+            },
+            "meta-type": "struct",
+            "fields": [
+              {
+                "field_name": "value",
+                "bitpos": 0,
+                "type": "int",
+                "size": 4,
+                "value": "1447122753",
+                "is_pointer": false
+              },
+              {
+                "field_name": "next",
+                "bitpos": 64,
+                "type": "struct cell *",
+                "size": 8,
+                "value": "0x78e258d4c544155",
+                "is_pointer": true
+              },
+              {
+                "field_name": "oui",
+                "bitpos": 64,
+                "type": "struct test",
+                "size": 8,
+                "value":  {
+                    "base": {
+                      "address": "0x400670/1",
+                      "symbol_name": null,
+                      "type": "struct test",
+                      "raw_type": "struct test",
+                      "size": 16
+                    },
+                    "meta-type": "struct",
+                    "fields": [
+                      {
+                        "field_name": "value",
+                        "bitpos": 0,
+                        "type": "int",
+                        "size": 4,
+                        "value": "42",
+                        "is_pointer": false
+                      },
+                      {
+                        "field_name": "next",
+                        "bitpos": 64,
+                        "type": "struct cell *",
+                        "size": 8,
+                        "value": "0x78e258d4c544155",
+                        "is_pointer": true
+                      }
+                    ]
+                  },
+                "is_pointer": true
+              }
+            ]
+          },
+          {
+            "base": {
+              "address": "0x7ffffffedde0",
+              "symbol_name": "head",
+              "type": "struct cell *",
+              "raw_type": "struct cell *",
+              "size": 8
+            },
+            "meta-type": "pointer",
+            "target": "0x400670",
+            "target_type": "struct cell"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffedde8",
+              "symbol_name": "b",
+              "type": "int",
+              "raw_type": "int",
+              "size": 4
+            },
+            "meta-type": "primitive",
+            "value": "4195376"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffeddec",
+              "symbol_name": "a",
+              "type": "int",
+              "raw_type": "int",
+              "size": 4
+            },
+            "meta-type": "primitive",
+            "value": "0"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffeddf0",
+              "symbol_name": "argv",
+              "type": "char **",
+              "raw_type": "char **",
+              "size": 8
+            },
+            "meta-type": "pointer",
+            "target": "0x7ffffffedee8",
+            "target_type": "char *"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffeddf8",
+              "symbol_name": "argc",
+              "type": "int",
+              "raw_type": "int",
+              "size": 4
+            },
+            "meta-type": "primitive",
+            "value": "1"
+          },
+          {
+            "base": {
+              "address": "0x7ffffffedee8",
+              "symbol_name": null,
+              "type": "char *",
+              "raw_type": "char *",
+              "size": 8
+            },
+            "meta-type": "string",
+            "value": "/mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisu00e9/moly/progs/theo/dummy_list"
+          }
+        ],
+        "edges": [
+          [
+            "0x400670",
+            null,
+            "next"
+          ],
+          [
+            "0x7ffffffedde0",
+            "0x400670",
+            null
+          ],
+          [
+            "0x7ffffffeddf0",
+            "0x7ffffffedee8",
+            null
+          ]
+        ],
+        "stack": [
+          {
+            "name": "main",
+            "variables": [
+              {
+                "name": "argc",
+                "address": "0x7ffffffeddf8"
+              },
+              {
+                "name": "argv",
+                "address": "0x7ffffffeddf0"
+              },
+              {
+                "name": "a",
+                "address": "0x7ffffffeddec"
+              },
+              {
+                "name": "b",
+                "address": "0x7ffffffedde8"
+              },
+              {
+                "name": "head",
+                "address": "0x7ffffffedde0"
+              }
+            ]
+          }
+        ]
+      };
     */
     retour = creerNoeud(dataJSON);
     creerNode(sys,retour)
     CreerStack();
 }
-
-
 
 function CreerStack(){
     //ancienne liste de stack
@@ -877,6 +1104,63 @@ function creerNoeud(data){
 
 
 
+function creationNodesRecursives(champs,parent){
+    if(champs == undefined)return;
+    champs.forEach(lechamp => {
+        var champ = lechamp.value;
+        if(typeof champ == "object"){
+            console.log(champ);
+                if(!appartientListe(champ.base.type,listeCouleur)){
+                    listeCouleur.push(champ.base.type);
+                    var couleur = couleurRandom();
+                    listeCouleurAssocier.push(couleur);	
+                }
+            
+            var posX = canvas.width/30;
+            //on créé les legendes à partir de la liste de couleur 
+            for(let i = listeCouleurActive.length; i < listeCouleur.length;i++){
+                listeCarre.push(new carre(ctx,posX + i * canvas.width/15,canvas.height/30,canvas.width/15,canvas.height/15,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
+                listeCouleurActive.push(true);
+            }
+       
+           //mettres les nouvelles nodes
+           var symb;
+               if(champ.base.symbol_name != null)symb =  champ.base.symbol_name;
+               else {
+                   symb =  champ.base.adresse;
+               }
+       
+               /////////////savoir si la node est active////////////////
+               //COULEUR
+               var posCouleur = 0;
+               for(let i = 0;i < listeCouleur.length;i++){
+                   if(listeCouleur[i] == champ.type)posCouleur = i;
+               }
+               //PILE
+               var actifPile = true;
+               
+               //si la pile est active au coup d'avant
+               if(pileActive){
+                   actifPile = casPileActive(champ.adresse);
+               }
+               /////////////////////////////////////////////////////////
+               sys.addNode(champ.base.address,{nom:symb,type:champ.base.type,tableau:champ.elements,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:champ["meta-type"],champs:champ.fields,valeurScalaire:champ.value,is_pointer:champ.is_pointer});
+               var pos = 0;
+                var maxfield = 0;
+                if(sys.getNode(parent).data.champs != undefined){
+                    maxfield = sys.getNode(parent).data.champs.length-1;
+                    for(let i = 0; i<sys.getNode(parent).data.champs.length;i++){
+                        if(sys.getNode(parent).data.champs[i].value.base && sys.getNode(parent).data.champs[i].value.base.address == champ.base.address)pos = i;
+                    }
+                }
+               sys.addEdge(parent,champ.base.address,{parent:parent,enfant:champ.base.address,compte_field:pos,max_field:maxfield,integre:true});
+               //si on a une recursion
+               creationNodesRecursives(champ.champs,champ.base.address);
+        }
+    });
+}
+
+
 function creerNode(sys,liste){
     listVariablesPile = [];
     dataJSON.stack.forEach(element => {
@@ -926,8 +1210,10 @@ function creerNode(sys,liste){
             actifPile = casPileActive(element.adresse);
         }
         /////////////////////////////////////////////////////////
-        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element.typeGenerique,nomsPointeurs:element.nomsPointeurs,champs:element.champs,valeurScalaire:element.valeurScalaire,is_pointer:element.is_pointer});
+        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element.typeGenerique,champs:element.champs,valeurScalaire:element.valeurScalaire,is_pointer:element.is_pointer});
         
+        //si on a une recursion
+        creationNodesRecursives(element.champs,element.adresse);
     });
 
     
@@ -1221,6 +1507,11 @@ function AvanceGDB(i){
 
 function plus1(){
     plus(1)
+    /*
+    //TEST
+    connection.send("n");
+    connection.send("compare -j");
+    */
 }
 
 function plus5(){
@@ -1334,14 +1625,143 @@ function decalePile(nbBlocsPlassables,nbBlocsTotaux,pourcent,taille){
 
 
 ///////fonctions useless/////////////
-credit();
+//credit();
+table = "(╯°□°）╯︵ ┻━┻"
 function credit(){
     console.log("Moly : Developpé par Théo Barrolet et Aurelien Flori");
     console.log("Lotos : Developpé par Thomas Hervé");
-    return "(╯°□°）╯︵ ┻━┻"
+    return table;
 }
-
 //////////////////////////////////
 
 ///\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\\
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\FONCTIONS DE MANIPULATIONS DES NOEUDS ET EDGES /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\FONCTIONS DE MANIPULATIONS DES NOEUDS ET EDGES/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\\
+
+function updateJSON(data){
+    dataJSON = JSON.parse(data);
+    nouvellesNodes(data.nodes.new);
+    modifNodes(data.nodes.modified);
+    supprNodes(data.nodes.deleted);
+    supprEdge(data.edges.deleted);
+    nouveauxEdges(data.edges.new);
+    CreerStack();
+    refresh();
+}
+
+function nouveauxEdges(edges){
+    edges.forEach(element => {
+        var pos = 0;
+        var maxfield = 0;
+        if(sys.getNode(element[0]).data.champs != undefined){
+            maxfield = sys.getNode(element[0]).data.champs.length-1;
+            for(let i = 0; i<sys.getNode(element[0]).data.champs.length;i++){
+                if(sys.getNode(element[0]).data.champs[i].is_pointer &&sys.getNode(element[0]).data.champs[i].value == enfant.adresse)pos = i;
+            }
+        }
+        sys.addEdge(element[0],element[1],{parent:element[0],enfant:element[1],compte_field:pos,max_field:maxfield});
+    });
+
+    //securité pour la pile
+    if(pileActive){
+        sys.eachNode(function(node, pt){
+            listVariablesPile.forEach(variable => {
+                if(node.name == variable.address){
+                    node.data.actifPile = false;
+                }
+            });
+        })
+    }
+}
+
+function supprEdge(edges){
+    edges.forEach(element => {
+        sys.eachEdge(function(edge, pt1, pt2){
+            if(edge.data.parent == element[0] && edge.data.enfant == element[1]){
+                sys.pruneEdge(edge);
+            }
+        })
+    });
+}
+
+function supprNodes(nodes){
+    nodes.forEach(element => {
+        sys.pruneNode(element.base.address);
+    });
+}
+
+
+function modifNodes(nodes){
+    nodes.forEach(element => {
+        if(typeof element.valeur == "object"){
+            nouvellesNodes([element]);
+        }else{
+        var sous_node = sys.getNode(element.base.address);
+        if(element.base.symbol_name != null)symb =  element.base.symbol_name;
+        else {
+            symb =  element.base.adresse;
+        }
+        sous_node.data.nom = symb;
+        sous_node.data.type = element.base.type;
+        sous_node.data.tableau = element.elements;
+        sous_node.data.typeGenerique = element["meta-type"];
+        sous_node.data.champs = element.fields;
+        sous_node.data.valeurScalaire = element.value;
+        sous_node.data.is_pointer = element.is_pointer;
+    }
+    });
+
+}
+
+function nouvellesNodes(nodes){
+    //remettre la pile à jour
+    listVariablesPile = [];
+    dataJSON.stack.forEach(element => {
+        element.variables.forEach(variable => {
+            listVariablesPile.push(variable);
+        });
+    });
+
+     //les couleurs
+     var posX = canvas.width/30;
+     //Chaque couleur est generer si le type n'a pas de couleur assigné
+     nodes.forEach(element => {
+         if(!appartientListe(element.base.type,listeCouleur)){
+             listeCouleur.push(element.base.type);
+             var couleur = couleurRandom();
+             listeCouleurAssocier.push(couleur);	
+         }
+     });
+
+     //on créé les legendes à partir de la liste de couleur 
+     for(let i = listeCouleurActive.length; i < listeCouleur.length;i++){
+         listeCarre.push(new carre(ctx,posX + i * canvas.width/15,canvas.height/30,canvas.width/15,canvas.height/15,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
+         listeCouleurActive.push(true);
+     }
+
+    //mettres les nouvelles nodes
+    var symb;
+    nodes.forEach(element => {
+        if(element.base.symbol_name != null)symb =  element.base.symbol_name;
+        else {
+            symb =  element.base.adresse;
+        }
+
+        /////////////savoir si la node est active////////////////
+        //COULEUR
+        var posCouleur = 0;
+        for(let i = 0;i < listeCouleur.length;i++){
+            if(listeCouleur[i] == element.type)posCouleur = i;
+        }
+        //PILE
+        var actifPile = true;
+        
+        //si la pile est active au coup d'avant
+        if(pileActive){
+            actifPile = casPileActive(element.adresse);
+        }
+        /////////////////////////////////////////////////////////
+        sys.addNode(element.base.address,{nom:symb,type:element.base.type,tableau:element.elements,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element["meta-type"],champs:element.fields,valeurScalaire:element.value,is_pointer:element.is_pointer});
+        //si on a une recursion
+        creationNodesRecursives(element.champs,element.base.address);
+    });
+}

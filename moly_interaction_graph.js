@@ -20,6 +20,7 @@ connection.onmessage = function(e){
 	var temp = e.data;
 	if(temp != "Error occurred in Python command: local variable 'output' referenced before assignment" && temp != "Error occurred in Python command: 1"){
 		lastMessage = "";
+		
 		for(let i = 0;i <temp.length - 2;i++){
 			if(temp[i] != "\\")lastMessage+= temp[i];
 		}
@@ -40,7 +41,8 @@ connection.onmessage = function(e){
 		if(essaie){
 			listeJSON.push(lastMessage);
 			lastMessageValide = lastMessage;
-			ouvrirJSON(sys,lastMessage);
+			if(JSON.parse(lastMessage).nodes.new != undefined)updateJSON(lastMessage);
+			else ouvrirJSON(sys,lastMessage);
 			document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
 			updateTimelineGraphique();
 		}
@@ -51,7 +53,6 @@ connection.onmessage = function(e){
 		document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
 		updateTimelineGraphique();
 		document.getElementById("etat").innerHTML = "Le programme a été entierement parcouru, pas totaux : " + tailleProgramme.toString();
-		ouvrirJSON(sys,lastMessageValide);
 		bloc = true;
 
 		document.getElementById("plus1").style.backgroundColor  = "#AAAAAA";

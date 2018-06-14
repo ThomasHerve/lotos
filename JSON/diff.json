@@ -1,0 +1,103 @@
+{
+    "location": {
+        "file": "dummy_list.c",
+        "line": 33
+    },
+    "relative_to": "coucou",
+    "nodes": {
+        "new": [
+            {
+                "base": {
+                    "address": "0x555555756280",
+                    "symbol_name": null,
+                    "type": "struct cell",
+                    "raw_type": "struct cell",
+                    "size": 16
+                },
+                "meta-type": "struct",
+                "fields": [
+                    {
+                        "field_name": "value",
+                        "bitpos": 0,
+                        "type": "int",
+                        "size": 4,
+                        "value": "1",
+                        "is_pointer": false
+                    },
+                    {
+                        "field_name": "next",
+                        "bitpos": 64,
+                        "type": "struct cell *",
+                        "size": 8,
+                        "value": "0x555555756260",
+                        "is_pointer": true
+                    }
+                ]
+            }
+        ],
+        "modified": [
+            {
+                "base": {
+                    "address": "0x7fffffffdbd0",
+                    "symbol_name": "head",
+                    "type": "struct cell *",
+                    "raw_type": "struct cell *",
+                    "size": 8
+                },
+                "meta-type": "pointer",
+                "target": "0x555555756280",
+                "target_type": "struct cell"
+            }
+        ],
+        "deleted": []
+    },
+    "edges": {
+        "new": [
+            [
+                "0x7fffffffdbd0",
+                "0x555555756280",
+                null
+            ],
+            [
+                "0x555555756280",
+                "0x555555756260",
+                "next"
+            ]
+        ],
+        "modified": [],
+        "deleted": [
+            [
+                "0x7fffffffdbd0",
+                "0x555555756260",
+                null
+            ]
+        ]
+    },
+    "stack": [
+        {
+            "name": "main",
+            "variables": [
+                {
+                    "name": "head",
+                    "address": "0x7fffffffdbd0"
+                },
+                {
+                    "name": "b",
+                    "address": "0x7fffffffdbcc"
+                },
+                {
+                    "name": "a",
+                    "address": "0x7fffffffdbc8"
+                },
+                {
+                    "name": "argc",
+                    "address": "0x7fffffffdbbc"
+                },
+                {
+                    "name": "argv",
+                    "address": "0x7fffffffdbb0"
+                }
+            ]
+        }
+    ]
+}
