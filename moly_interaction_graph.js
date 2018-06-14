@@ -28,31 +28,31 @@ connection.onmessage = function(e){
 			JSON.parse(lastMessage)
 		}
 		catch(error){
+			while(!isNaN(parseInt(lastMessage[0], 10))){		
+				lastMessage = lastMessage.substring(1);
+			}
+			while(lastMessage[0] == "t"){
+				lastMessage = lastMessage.substring(1);
+			}
+			document.getElementById("courant").innerHTML = "Ligne courante : " + lastMessage;
 			essaie = false;
 		}
 		if(essaie){
 			listeJSON.push(lastMessage);
-			document.getElementById("TimeLine").max++;
-			position = listeJSON.length;
-			compteIter--;
-			if(compteIter <= 0){
-				ouvrirJSON(sys,lastMessage);
-				bloc = false;
-				document.getElementById("pas").innerHTML = "Pas actuel : " + position;
-				document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
-				lastMessageValide = lastMessage;
-			}
-			else lastMessageValide = lastMessage;
+			lastMessageValide = lastMessage;
+			ouvrirJSON(sys,lastMessage);
+			document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
+			updateTimelineGraphique();
 		}
 	}
 	else if (!fin){
 		fin = true;
-		tailleProgramme = listeJSON.length;
+		tailleProgramme -= last_nb;
+		document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
+		updateTimelineGraphique();
 		document.getElementById("etat").innerHTML = "Le programme a été entierement parcouru, pas totaux : " + tailleProgramme.toString();
 		ouvrirJSON(sys,lastMessageValide);
-		bloc = false;
-		document.getElementById("pas").innerHTML = "Pas actuel : " + position;
-		document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+		bloc = true;
 
 		document.getElementById("plus1").style.backgroundColor  = "#AAAAAA";
 		document.getElementById("plus5").style.backgroundColor  = "#AAAAAA";

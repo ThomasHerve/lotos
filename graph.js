@@ -9,8 +9,6 @@
 var etat = 0;
 var tailleCarre = 2.5
 var compteIter = -1;
-var position = 0;
-var tailleProgramme = undefined;
 var dataJSON;
 var w;
 var decale;
@@ -440,8 +438,10 @@ class Renderer{
             }
 
             //les types en haut de la fenetre
+
             var compte = 0;
             listeCarre.forEach(element => {
+                
                 if(listeCouleurActive[compte]){
                     CreerRectangleText(element.e1,element.e2,element.e3,element.e4,element.e5,element.e6,element.e7,element.e8)
                 }
@@ -546,7 +546,7 @@ class Renderer{
                 that.redraw()
             }
             if(pileActive && e.pageX < (canvas.width * 1.5 / 15 - (canvas.width/90))){
-
+                var modif = false;
                 var totalBlocs = 0;
                 listStack.forEach(element => {
                     if(element.deplie){
@@ -561,6 +561,7 @@ class Renderer{
                         dec = tailleY/2;
                         if(e.pageY <= posy + dec && e.pageY >= posy - dec){
                             element.deplie = true;
+                            modif = true;
                         }
                         posy += tailleY;
                     }
@@ -575,26 +576,51 @@ class Renderer{
                         posy += compte * tailleY;
                         if(e.pageY < posYcentral + dec && e.pageY > posYcentral - dec){
                             element.deplie = false;
+                            modif = true;
                         }
                     }
                 });
+                if(!modif){
+                     //PARTIE NODES
+                    nearest = sys.nearest(_mouseP);
+                    if(!nearest)return false;
+                    if (!nearest.node) return false;
+                    selected = (nearest.distance < 200) ? nearest : null;
+                    dragged = selected;
+
+                    if (dragged && dragged.node !== null && dragged.node.data.active){
+                         dragged.node.fixed = true;
+                        nodeSelectionne = dragged.node.name;
+                    if(di == 0 && dragged.node.data.typeGenerique != "array"){
+                    if(!rec_on)dragged.node.data.deplie = !dragged.node.data.deplie
+                    else depliageRecursif(!dragged.node.data.deplie,dragged.node);
+                }
+                if(di == 0 && etat == 1 && dragged.node.data.typeGenerique != "array")versTableau();
+                if(dragged.node.data.tableau != undefined){
+                  nodeTab = dragged.node;
+                  if(di == 0){
+                      versTableau();
+                  }
+                 }
+            }
+			canvas.addEventListener("mousemove", handler.dragged); 
+            document.defaultView.addEventListener("mouseup", handler.dropped); 
+            return false
+            }
                 that.redraw();
             }
-
-
             else{
              //PARTIE NODES
-            nearest = sys.nearest(_mouseP);
-            if(!nearest)return false;
-            if (!nearest.node) return false;
-            selected = (nearest.distance < 200) ? nearest : null;
-            dragged = selected;
-
-            if (dragged && dragged.node !== null && dragged.node.data.active){
-              dragged.node.fixed = true;
-              nodeSelectionne = dragged.node.name;
-              if(di == 0 && dragged.node.data.typeGenerique != "array"){
-                  if(!rec_on)dragged.node.data.deplie = !dragged.node.data.deplie
+                nearest = sys.nearest(_mouseP);
+                if(!nearest)return false;
+                if (!nearest.node) return false;
+                selected = (nearest.distance < 200) ? nearest : null;
+                dragged = selected;
+                if (dragged && dragged.node !== null && dragged.node.data.active){
+                    dragged.node.fixed = true;
+                    nodeSelectionne = dragged.node.name;
+                    if(di == 0 && dragged.node.data.typeGenerique != "array"){
+                    if(!rec_on)dragged.node.data.deplie = !dragged.node.data.deplie
                   else depliageRecursif(!dragged.node.data.deplie,dragged.node);
               }
               if(di == 0 && etat == 1 && dragged.node.data.typeGenerique != "array")versTableau();
@@ -658,7 +684,6 @@ function depliageRecursifEffectif(etatOrigine,node,previous){
 
 ////////////////////INIT/////////////////////////////
 
-
 var canvas = document.getElementById('viewport')//on recupere le canvas
 var ctx = document.getElementById('viewport').getContext('2d');//son contexte (permet de dessiner)
 var nodeSelectionne = null;//variable global contenant la node actuellement cliqué
@@ -669,12 +694,11 @@ sys.renderer = new Renderer(document.getElementById('viewport'),arbor);//on cré
 var listeCouleur = [];//chaque structure
 var listeCouleurAssocier  = [];//generer aleatoirement
 var listeCouleurActive = []; //permet de savoit si tel ou tel couleur est active
-var listeCol = [];//la liste qui contiendra toutes les couleurs à utiliser avant de les generer aléatoirement --initialisé dans ouvrirJSON--
+var listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"];//la liste qui contiendra toutes les couleurs à utiliser avant de les generer aléatoirement --initialisé dans ouvrirJSON--
 var listeCarre = [];//contiendra tout les carrés permettant de faire la legende
 var pileActive = false;//savoir si actuellement la pile est afficher ou non
 var listVariablesPile = [];//liste contenant les variables de la pile (une variable = une adresse et un nom)
 var listStack = [];//liste qui contient une frame dans sa globalité
-
 
 ///////////////////FONCTIONS COULEURS//////////////
 
@@ -737,431 +761,23 @@ class carre{
 }
 
 
-function ouvrirJSON(sys,message){
+function ouvrirJSON(sys,message){ 
+    try{
+        dataJSON = JSON.parse(message);
+    }
+    catch{
+        return;
+    }
+    
     sys.eachEdge(function(edge, pt1, pt2){
         sys.pruneEdge(edge);
     })
     sys.eachNode(function(node, pt){
         sys.pruneNode(node);
     })
-    listeCol = ["#d73027","#f46d43","#fdae61","#fee08b","#d9ef8b","#a6d96a","#66bd63","1a9850"]
-    dataJSON = JSON.parse(message);
     /*
-    dataJSON = {
-        "location": {
-            "file": "cycle.c",
-            "line": 12
-        },
-        "nodes": [
-            {
-                "base": {
-                    "address": "0x7fffffffdca8",
-                    "symbol_name": "tab",
-                    "type": "chaine tab",
-                    "raw_type": "chaine tab",
-                    "size": 8
-                },
-                "meta-type": "array",
-                "dynamic": true,
-                "element_type": "chaine tab",
-                "element_size": 4,
-                "n_elements": 3,
-                "is_pointer": true,
-                "elements": [
-                    "0x555555756260",
-                    "0x555555756280",
-                    "0x5555557562a0"
-                ]
-            },
-            {
-                "base": {
-                    "address": "0x555555756260",
-                    "symbol_name": null,
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "meta-type": "struct",
-                "fields": [
-                    {
-                        "field_name": "A",
-                        "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x555555756280",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
-                        "type": "int",
-                        "size": 4,
-                        "value": "1",
-                        "is_pointer": false
-                    }
-                ]
-            },
-            {
-                "base": {
-                    "address": "0x555555756280",
-                    "symbol_name": null,
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "meta-type": "struct",
-                "fields": [
-                    {
-                        "field_name": "A",
-                        "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x5555557562a0",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
-                        "type": "int",
-                        "size": 4,
-                        "value": "2",
-                        "is_pointer": false
-                    }
-                ]
-            },
-            {
-                "base": {
-                    "address": "0x5555557562a0",
-                    "symbol_name": null,
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "meta-type": "struct",
-                "fields": [
-                    {
-                        "field_name": "A",
-                        "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x7fffffffdbf0",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
-                        "type": "int",
-                        "size": 4,
-                        "value": "3",
-                        "is_pointer": false
-                    }
-                ]
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb24",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "2"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb28",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x5555557562a0",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb54",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "3"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb58",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x555555756280",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb68",
-                    "symbol_name": "suiv",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x5555557562a0",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb84",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "4"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb88",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x555555756260",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdb98",
-                    "symbol_name": "suiv",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x555555756280",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdbb4",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "5"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdbb8",
-                    "symbol_name": "c",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x7fffffffdbf0",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdbc8",
-                    "symbol_name": "suiv",
-                    "type": "Bonjour *",
-                    "raw_type": "Bonjour *",
-                    "size": 8
-                },
-                "meta-type": "pointer",
-                "target": "0x555555756260",
-                "target_type": "Bonjour"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdbec",
-                    "symbol_name": "nbCel",
-                    "type": "int",
-                    "raw_type": "int",
-                    "size": 4
-                },
-                "meta-type": "primitive",
-                "value": "5"
-            },
-            {
-                "base": {
-                    "address": "0x7fffffffdbf0",
-                    "symbol_name": "Cqfd",
-                    "type": "Bonjour",
-                    "raw_type": "struct A",
-                    "size": 16
-                },
-                "meta-type": "struct",
-                "fields": [
-                    {
-                        "field_name": "A",
-                        "bitpos": 0,
-                        "type": "Bonjour *",
-                        "size": 8,
-                        "value": "0x555555756260",
-                        "is_pointer": true
-                    },
-                    {
-                        "field_name": "B",
-                        "bitpos": 64,
-                        "type": "int",
-                        "size": 4,
-                        "value": "0",
-                        "is_pointer": false
-                    }
-                ]
-            }
-        ],
-        "edges": [
-            [
-                "0x555555756260",
-                "0x555555756280",
-                "A"
-            ],
-            [
-                "0x555555756280",
-                "0x5555557562a0",
-                "A"
-            ],
-            [
-                "0x5555557562a0",
-                "0x7fffffffdbf0",
-                "A"
-            ],
-            [
-                "0x7fffffffdb28",
-                "0x5555557562a0",
-                null
-            ],
-            [
-                "0x7fffffffdb58",
-                "0x555555756280",
-                null
-            ],
-            [
-                "0x7fffffffdb68",
-                "0x5555557562a0",
-                null
-            ],
-            [
-                "0x7fffffffdb88",
-                "0x555555756260",
-                null
-            ],
-            [
-                "0x7fffffffdb98",
-                "0x555555756280",
-                null
-            ],
-            [
-                "0x7fffffffdbb8",
-                "0x7fffffffdbf0",
-                null
-            ],
-            [
-                "0x7fffffffdbc8",
-                "0x555555756260",
-                null
-            ],
-            [
-                "0x7fffffffdbf0",
-                "0x555555756260",
-                "A"
-            ]
-        ],
-        "stack": [
-            {
-                "name": "main",
-                "variables": [
-                    {
-                        "name": "Cqfd",
-                        "address": "0x7fffffffdbf0"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdbec"
-                    }
-                ]
-            },
-            {
-                "name": "init_rec",
-                "variables": [
-                    {
-                        "name": "suiv",
-                        "address": "0x7fffffffdbc8"
-                    },
-                    {
-                        "name": "c",
-                        "address": "0x7fffffffdbb8"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdbb4"
-                    }
-                ]
-            },
-            {
-                "name": "init_rec",
-                "variables": [
-                    {
-                        "name": "suiv",
-                        "address": "0x7fffffffdb98"
-                    },
-                    {
-                        "name": "c",
-                        "address": "0x7fffffffdb88"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdb84"
-                    }
-                ]
-            },
-            {
-                "name": "init_rec",
-                "variables": [
-                    {
-                        "name": "suiv",
-                        "address": "0x7fffffffdb68"
-                    },
-                    {
-                        "name": "c",
-                        "address": "0x7fffffffdb58"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdb54"
-                    }
-                ]
-            },
-            {
-                "name": "init_rec",
-                "variables": [
-                    {
-                        "name": "c",
-                        "address": "0x7fffffffdb28"
-                    },
-                    {
-                        "name": "nbCel",
-                        "address": "0x7fffffffdb24"
-                    }
-                ]
-            }
-        ]
-    }*/
+    dataJSON = 
+    */
     retour = creerNoeud(dataJSON);
     creerNode(sys,retour)
     CreerStack();
@@ -1178,7 +794,6 @@ function CreerStack(){
         });
     }
 
-    listVariablesPile = [];
     listStack = [];
     var listnomframe = []
     var comptenomframe = []
@@ -1214,12 +829,9 @@ function CreerStack(){
         }
 
         listStack.push(Object.assign({deplie:is_deplie,nbElem:compte},element));
-        element.variables.forEach(variable => {
-            listVariablesPile.push(variable);
-        });
+       
         compte_stack++;
     });
-
 }
 
 
@@ -1266,6 +878,13 @@ function creerNoeud(data){
 
 
 function creerNode(sys,liste){
+    listVariablesPile = [];
+    dataJSON.stack.forEach(element => {
+        element.variables.forEach(variable => {
+            listVariablesPile.push(variable);
+        });
+    });
+
     //les couleurs
     var posX = canvas.width/30;
     //Chaque couleur est generer si le type n'a pas de couleur assigné
@@ -1277,10 +896,11 @@ function creerNode(sys,liste){
         }
     });
     //on créé les legendes à partir de la liste de couleur 
+
+
 	for(let i = listeCouleurActive.length; i < listeCouleur.length;i++){
-        listeCarre.push(new carre(ctx,posX,canvas.height/30,canvas.width/15,canvas.height/15,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
+        listeCarre.push(new carre(ctx,posX + i * canvas.width/15,canvas.height/30,canvas.width/15,canvas.height/15,listeCouleurAssocier[i],listeCouleur[i],"Arial"));
         listeCouleurActive.push(true);
-		posX+=canvas.width/15;
     }
    
 
@@ -1324,6 +944,16 @@ function creerNode(sys,liste){
             sys.addEdge(element.adresse,enfant.adresse,{parent:element.adresse,enfant:enfant.adresse,compte_field:pos,max_field:maxfield});
 		});
     });   
+
+    if(pileActive){
+        sys.eachNode(function(node, pt){
+            listVariablesPile.forEach(variable => {
+                if(node.name == variable.address){
+                    node.data.actifPile = false;
+                }
+            });
+        })
+    }
 }
 
 
@@ -1563,21 +1193,31 @@ function depInfo(){
 
 ////////////////////////////////////////////////////////////////TIMELINE////////////////////////////////////////////////////////////////////////////////////////
 
-document.getElementById("TimeLine").value = 0;
 document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.99;
 document.getElementById("TimeLine").oninput = timeLine
 
 document.getElementById("plus1").onclick = plus1;
 document.getElementById("plus5").onclick = plus5;
 document.getElementById("plus10").onclick = plus10;
-document.getElementById("moins1").onclick = moins1;
+document.getElementById("NS").onclick = NS;
+
+
+function NS(){
+    if(document.getElementById("NS").value == "N"){
+        document.getElementById("NS").value = "S"
+    }
+    else{
+        document.getElementById("NS").value = "N"
+    }
+}
+
 
 
 function AvanceGDB(i){
-    connection.send("n " + i);
+    if(document.getElementById("NS").value == "N")connection.send("n " + i);
+    else connection.send("s " + i);
     connection.send("print_memory -j");
 }
-
 
 function plus1(){
     plus(1)
@@ -1591,91 +1231,73 @@ function plus10(){
     plus(10)
 }
 
+var decaleDepuisLastJSON = [];//stockera le decalage entre chaque frame enregistré
+var tailleProgramme = 0
+bloc = false;
+var last_nb = 0;
+
 function plus(nb){
-    if(position == 0)return;
-    if(tailleProgramme && position+nb<=tailleProgramme){
-        position+=nb;
-        ouvrirJSON(sys,listeJSON[position-1]);
-        if(tailleProgramme && position+10>=tailleProgramme){
-            document.getElementById("plus10").style.backgroundColor = "#AAAAAA";
-        }
-        if(tailleProgramme && position+5>=tailleProgramme){
-            document.getElementById("plus5").style.backgroundColor = "#AAAAAA";
-        }
-        if(tailleProgramme && position==tailleProgramme){
-            document.getElementById("plus1").style.backgroundColor = "#AAAAAA";
-        }
-        document.getElementById("moins1").style.backgroundColor = "red"
-        document.getElementById("pas").innerHTML = "Pas actuel : " + position;
-        document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
-    }
-    else if(fin)return;
-    else{
-        document.getElementById("moins1").style.backgroundColor = "red"
-        if(position+nb>=listeJSON.length && position<listeJSON.length){
-            nb -= (position+nb - listeJSON.length);
-        }
-        compteIter = nb;
-        AvanceGDB(nb);
-        sys.renderer.redraw()
-    }
+    if(bloc)return;
+    updateTimeline(nb);
+    AvanceGDB(nb);//on avance de nb pas
+    decaleDepuisLastJSON.push(nb);//on ajoute de cb de pas on est avancer cette fois ci
+    
+    sys.renderer.redraw()
 }
 
-function moins1(){
-    if(position == 0)return;
-    if(position>1){
-        position--;
-        ouvrirJSON(sys,listeJSON[position-1]);
-        sys.renderer.redraw()
-        if(position == 1)document.getElementById("moins1").style.backgroundColor = "#AAAAAA";
-    }
-    if(tailleProgramme && position+10<tailleProgramme){
-        document.getElementById("plus10").style.backgroundColor = "#4CAF50";
-    }
-    if(tailleProgramme && position+5<tailleProgramme){
-        document.getElementById("plus5").style.backgroundColor = "#4CAF50";
-    }
-    document.getElementById("plus1").style.backgroundColor = "#4CAF50";
-    document.getElementById("pas").innerHTML = "Pas actuel : " + position;
-    document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+function updateTimeline(nb){
+    document.getElementById("TimeLine").value = 1;
+    tailleProgramme+=nb;
+    last_nb = nb;
 }
 
-
-
-
+function updateTimelineGraphique(){//rajout des marques en CSS
+    if(decaleDepuisLastJSON.length == 0)return;
+    var incremente = 0;
+    var ajout = "linear-gradient(to right, rgb(204, 204, 204) 0%"
+    for (let index = 0; index < decaleDepuisLastJSON.length; index++) {
+        var pos = incremente/tailleProgramme * 100;
+        if(pos!=0)ajout += ", rgb(204, 204, 204) " + (pos-0.1) + "%, rgb(0, 0, 0) " + pos +"%, rgb(204, 204, 204) " + (pos+0.1) + "%";
+        else ajout += ", rgb(0, 0, 0) " + (pos+0.01) +"%, rgb(204, 204, 204) " + (pos+0.1) + "%";
+        incremente += decaleDepuisLastJSON[index];
+     }
+     ajout += ", rgb(204, 204, 204) 99.8%,rgb(0, 0, 0) 99.9%,rgb(204, 204, 204) 100%)"
+     document.getElementById("TimeLine").style.backgroundImage  = ajout;
+}
 
 function timeLine(){
-    if(position != Math.round(document.getElementById("TimeLine").value) &&  Math.round(document.getElementById("TimeLine").value)!=0){
-        position = Math.round(document.getElementById("TimeLine").value);
-        ouvrirJSON(sys,listeJSON[position-1]);
-        if(tailleProgramme && position+10>=tailleProgramme){
-            document.getElementById("plus10").style.backgroundColor = "#AAAAAA";
-        }
-        else{
-            document.getElementById("plus10").style.backgroundColor = "#4CAF50";
-        }
-        if(tailleProgramme && position+5>=tailleProgramme){
-            document.getElementById("plus5").style.backgroundColor = "#AAAAAA";
-        }
-        else{
-            document.getElementById("plus5").style.backgroundColor = "#4CAF50";
-        }
-        if(tailleProgramme && position==tailleProgramme){
-            document.getElementById("plus1").style.backgroundColor = "#AAAAAA";
-        }
-        else{
-            document.getElementById("plus1").style.backgroundColor = "#4CAF50";
-        }
-        if(position > 1){
-            document.getElementById("moins1").style.backgroundColor = "red"
-        }
-        else{
-            document.getElementById("moins1").style.backgroundColor = "#AAAAAA"
-        }
-        document.getElementById("pas").innerHTML = "Pas actuel : " + position;
-        document.getElementById("TimeLine").value = (position)/listeJSON.length * document.getElementById("TimeLine").max;
+    var position = document.getElementById("TimeLine").value * tailleProgramme;
+    position = Math.round(position);
+
+    var incremente = 0;
+    var finalpos = undefined;
+    var pas = 0;
+    var pos_slide = 0;
+    for (let index = 0; index < decaleDepuisLastJSON.length; index++) {
+       if(position >= incremente && position <= incremente + decaleDepuisLastJSON[index]){
+            if(position - incremente < (incremente + decaleDepuisLastJSON[index]) - position){
+                finalpos = index;
+                pas = incremente;
+                pos_slide = index;
+            }
+            else{
+                finalpos = index + 1;
+                pas = incremente + decaleDepuisLastJSON[index];
+                pos_slide = index + 1;
+            }
+       }
+       incremente += decaleDepuisLastJSON[index];
     }
+   
+    if(listeJSON[finalpos] != lastMessageValide){
+        ouvrirJSON(sys,listeJSON[finalpos]);
+        document.getElementById("pas").innerHTML = "Pas actuel : " + pas;
+    }
+    document.getElementById("TimeLine").value = pas/tailleProgramme;
+    lastMessageValide = listeJSON[finalpos];
 }
+
+
 
 ///////////////////////////////////////////MODE PILE//////////////////////////////////////
 
@@ -1709,6 +1331,17 @@ function decalePile(nbBlocsPlassables,nbBlocsTotaux,pourcent,taille){
     return Math.min(max,(pourcent * nbBlocsTotaux) * taille);
 }
 
+
+
+///////fonctions useless/////////////
+credit();
+function credit(){
+    console.log("Moly : Developpé par Théo Barrolet et Aurelien Flori");
+    console.log("Lotos : Developpé par Thomas Hervé");
+    return "(╯°□°）╯︵ ┻━┻"
+}
+
+//////////////////////////////////
 
 ///\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\\
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\FONCTIONS DE MANIPULATIONS DES NOEUDS ET EDGES /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

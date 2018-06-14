@@ -27,15 +27,20 @@
 			<p id = "is_connected" style = "color: red ; display: inline;position: relative;right:-20%;font-size: 20">Not connected to the server already !</p>
 			<p id = "etat">Le programme n'a pas encore été entierement parcouru</p>
 			<p id = "pas">Pas actuel : 1</p>
+			<p id = "courant">Ligne courante :</p>
 			<div style="position: absolute;bottom:-60%;">
 					<input id="plus1" type="button" value="+1" class="buttonTime" />
 					<input id="plus5" type="button" value="+5" class="buttonTime" />
 					<input id="plus10" type="button" value="+10" class="buttonTime" />
-					<input id="moins1" type="button" value="-1" class="buttonTime" style="background-color: #AAAAAA"/>
+					<input id="NS" type="button" value="N" class="buttonTime" />
+					<!--input id="moins1" type="button" value="-1" class="buttonTime" style="background-color: #AAAAAA"/--> 
 			</div>
 		</div>
 		<div class="timeLine" style="position: relative;">
-				<input type="range" min="0" max="0" value="1" step="any" class="sliderTime" id = "TimeLine" step="1">
+				<input type="range" min="0" max="1" value="1" step="any" class="sliderTime" style="background-image: linear-gradient(to right,
+				#CCC 0%, 
+				#CCC 100%
+			);" id = "TimeLine">
 		</div>
 		
 		
