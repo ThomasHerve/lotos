@@ -5,12 +5,17 @@ var lastMessage = "";
 var fin = false;
 var lastMessageValide = "";
 var listeJSON = [];
+var test = true//mettre true pour les tests
+var open = false
 
 connection.onopen = function(){
 	console.log("Connection with gdb server opened");
-	connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/theo/dummy_list");
-	connection.send("n");
-	connection.send("print_memory -j")
+	if(test){
+		connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/theo/dummy_list");
+		connection.send("n");
+		connection.send("print_memory -j")
+		open = true
+	}
 	document.getElementById("is_connected").style.color = "green";
 	document.getElementById("is_connected").innerHTML = "Connected !"
 };
@@ -18,6 +23,17 @@ connection.onopen = function(){
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */
 	var temp = e.data;
+
+	if(!open){
+		if(!test && e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized"){
+			open = true;
+			document.getElementById("image").src = "images/valide.png";
+			connection.send("n");
+			connection.send("print_memory -j")
+		}
+	}
+
+
 	if(temp != "Error occurred in Python command: local variable 'output' referenced before assignment" && temp != "Error occurred in Python command: 1"){
 		lastMessage = "";
 		
@@ -64,6 +80,27 @@ connection.onmessage = function(e){
 connection.onclose = function(){
 	console.log("Connection with gdb server closed");
 };
+
+
+document.getElementById("selec").onclick = envoie;
+
+function envoie(){
+    if(connection.readyState === 1) {
+		connection.send("load-file " + document.getElementById("file").value);
+		document.getElementById("TimeLine").value = 0.5
+		if(open){
+			tailleProgramme = 0;
+			document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
+			decaleDepuisLastJSON = []
+			updateTimelineGraphique();
+			var ajout = "linear-gradient(to right, rgb(204, 204, 204) 0%"
+			ajout += ", rgb(204, 204, 204) 99.8%,rgb(0, 0, 0) 99.9%,rgb(204, 204, 204) 100%)"
+			document.getElementById("TimeLine").style.backgroundImage  = ajout;
+			connection.send("n");
+			connection.send("print_memory -j")
+		}
+    }
+}
 
 /*
 let command_text = document.getElementById("command-text");

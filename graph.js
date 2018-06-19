@@ -373,7 +373,7 @@ class Renderer{
                         CreerRectangle(this.renderer.ctx,pt.x ,pt.y,w * tailleCarre,w * tailleCarre, donneCouleur(node.data.type),"black",2); 
                         var text = node.data.valeurScalaire;
                         CreerTexteNonCentre(this.renderer.ctx,pt.x - (w * tailleCarre/2) * 0.9,pt.y - (w * tailleCarre/2)*0.8,8,"Arial","black",node.data.nom,0,w * tailleCarre); 
-                        CreerText(this.renderer.ctx,pt.x,pt.y + 7,Math.max(w * tailleCarre/text.length,7),"Arial","black",text,0,w * tailleCarre * 1.8);
+                        CreerText(this.renderer.ctx,pt.x,pt.y,Math.max(w * tailleCarre/text.length,7),"Arial","black",text,0,w * tailleCarre * 1.8);
                     }
                     else if(node.data.typeGenerique == "struct"){
                         this.renderer.ctx.fillStyle = donneCouleur(node.data.type)
@@ -593,7 +593,7 @@ class Renderer{
                 })
                 that.redraw()
             }
-            if(pileActive && e.pageX < (canvas.width * 1.5 / 15 - (canvas.width/90))){
+            else if(pileActive && e.pageX < (canvas.width * 1.5 / 15 - (canvas.width/90))){
                 var modif = false;
                 var totalBlocs = 0;
                 listStack.forEach(element => {
@@ -759,7 +759,7 @@ function donneCouleur(nom){
 }
 
 function couleurRandom(){
-    if(listeCol.length>0){
+    if(listeCol.length>1){
         return listeCol.shift();
     }
     return '#'+(randomFixe(0.3)*0xFFFFFF<<0).toString(16);
@@ -824,189 +824,546 @@ function ouvrirJSON(sys,message){
 
     /*
     dataJSON = {
-        "location": {
-          "file": "dummy_list.c",
-          "line": 28
-        },
-        "nodes": [
-          {
+    "location": {
+        "file": "main2.c",
+        "line": 46
+    },
+    "nodes": [
+        {
             "base": {
-              "address": "0x400670",
-              "symbol_name": null,
-              "type": "struct cell",
-              "raw_type": "struct cell",
-              "size": 16
+                "address": "0x55555575ed30",
+                "symbol_name": null,
+                "type": "seq_bez",
+                "raw_type": "struct seq_bez",
+                "size": 32
             },
             "meta-type": "struct",
             "fields": [
-              {
-                "field_name": "value",
-                "bitpos": 0,
-                "type": "int",
-                "size": 4,
-                "value": "1447122753",
-                "is_pointer": false
-              },
-              {
-                "field_name": "next",
-                "bitpos": 64,
-                "type": "struct cell *",
-                "size": 8,
-                "value": "0x78e258d4c544155",
-                "is_pointer": true
-              },
-              {
-                "field_name": "oui",
-                "bitpos": 64,
-                "type": "struct test",
-                "size": 8,
-                "value":  {
-                    "base": {
-                      "address": "0x400670/1",
-                      "symbol_name": null,
-                      "type": "struct test",
-                      "raw_type": "struct test",
-                      "size": 16
-                    },
-                    "meta-type": "struct",
-                    "fields": [
-                      {
-                        "field_name": "value",
-                        "bitpos": 0,
-                        "type": "int",
-                        "size": 4,
-                        "value": "42",
-                        "is_pointer": false
-                      },
-                      {
-                        "field_name": "next",
-                        "bitpos": 64,
-                        "type": "struct cell *",
-                        "size": 8,
-                        "value": "0x78e258d4c544155",
-                        "is_pointer": true
-                      }
-                    ]
-                  },
-                "is_pointer": true
-              }
+                {
+                    "field_name": "size",
+                    "bitpos": 0,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "3172",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "TMAX",
+                    "bitpos": 32,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "3172",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "card",
+                    "bitpos": 64,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "3172",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "tab",
+                    "bitpos": 128,
+                    "type": "Bezier3 *",
+                    "size": 8,
+                    "value": "0x7ffff7eb0010",
+                    "is_pointer": true
+                },
+                {
+                    "field_name": "suiv",
+                    "bitpos": 192,
+                    "type": "struct seq_bez *",
+                    "size": 8,
+                    "value": "0x0",
+                    "is_pointer": true
+                }
             ]
-          },
-          {
+        },
+        {
             "base": {
-              "address": "0x7ffffffedde0",
-              "symbol_name": "head",
-              "type": "struct cell *",
-              "raw_type": "struct cell *",
-              "size": 8
+                "address": "0x55555575f9c0",
+                "symbol_name": null,
+                "type": "Point",
+                "raw_type": "struct point",
+                "size": 16
             },
-            "meta-type": "pointer",
-            "target": "0x400670",
-            "target_type": "struct cell"
-          },
-          {
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "x",
+                    "bitpos": 0,
+                    "type": "double",
+                    "size": 8,
+                    "value": "25",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "y",
+                    "bitpos": 64,
+                    "type": "double",
+                    "size": 8,
+                    "value": "44",
+                    "is_pointer": false
+                }
+            ]
+        },
+        {
             "base": {
-              "address": "0x7ffffffedde8",
-              "symbol_name": "b",
-              "type": "int",
-              "raw_type": "int",
-              "size": 4
+                "address": "0x7ffff714b010",
+                "symbol_name": null,
+                "type": "Pixel",
+                "raw_type": "enum {...}",
+                "size": 4
             },
             "meta-type": "primitive",
-            "value": "4195376"
-          },
-          {
+            "value": "BLANC"
+        },
+        {
             "base": {
-              "address": "0x7ffffffeddec",
-              "symbol_name": "a",
-              "type": "int",
-              "raw_type": "int",
-              "size": 4
+                "address": "0x7ffff7eb0010",
+                "symbol_name": null,
+                "type": "Bezier3",
+                "raw_type": "struct Bezier3",
+                "size": 64
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "C0",
+                    "bitpos": 0,
+                    "type": "Point",
+                    "size": 16,
+                    "value": "(Point C0) 0x7ffff7eb0010: \n\tdouble x: 25\n\tdouble y: 44\n",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "C1",
+                    "bitpos": 128,
+                    "type": "Point",
+                    "size": 16,
+                    "value": "(Point C1) 0x7ffff7eb0020: \n\tdouble x: 27.965146459028553\n\tdouble y: 36.965146459028553\n",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "C2",
+                    "bitpos": 256,
+                    "type": "Point",
+                    "size": 16,
+                    "value": "(Point C2) 0x7ffff7eb0030: \n\tdouble x: 32.298479792361888\n\tdouble y: 31.298479792361888\n",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "C3",
+                    "bitpos": 384,
+                    "type": "Point",
+                    "size": 16,
+                    "value": "(Point C3) 0x7ffff7eb0040: \n\tdouble x: 38\n\tdouble y: 27\n",
+                    "is_pointer": false
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7ffff7ee2010",
+                "symbol_name": null,
+                "type": "Pixel",
+                "raw_type": "enum {...}",
+                "size": 4
             },
             "meta-type": "primitive",
-            "value": "0"
-          },
-          {
+            "value": "BLANC"
+        },
+        {
             "base": {
-              "address": "0x7ffffffeddf0",
-              "symbol_name": "argv",
-              "type": "char **",
-              "raw_type": "char **",
-              "size": 8
+                "address": "0x7fffffffdc20",
+                "symbol_name": "argv",
+                "type": "char **",
+                "raw_type": "char **",
+                "size": 8
             },
             "meta-type": "pointer",
-            "target": "0x7ffffffedee8",
+            "target": "0x7fffffffdde8",
             "target_type": "char *"
-          },
-          {
+        },
+        {
             "base": {
-              "address": "0x7ffffffeddf8",
-              "symbol_name": "argc",
-              "type": "int",
-              "raw_type": "int",
-              "size": 4
+                "address": "0x7fffffffdc2c",
+                "symbol_name": "argc",
+                "type": "int",
+                "raw_type": "int",
+                "size": 4
+            },
+            "meta-type": "primitive",
+            "value": "2"
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc30",
+                "symbol_name": "i",
+                "type": "int",
+                "raw_type": "int",
+                "size": 4
             },
             "meta-type": "primitive",
             "value": "1"
-          },
-          {
+        },
+        {
             "base": {
-              "address": "0x7ffffffedee8",
-              "symbol_name": null,
-              "type": "char *",
-              "raw_type": "char *",
-              "size": 8
+                "address": "0x7fffffffdc34",
+                "symbol_name": "val_max",
+                "type": "int",
+                "raw_type": "int",
+                "size": 4
+            },
+            "meta-type": "primitive",
+            "value": "1"
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc38",
+                "symbol_name": "d",
+                "type": "double",
+                "raw_type": "double",
+                "size": 8
+            },
+            "meta-type": "primitive",
+            "value": "1"
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc40",
+                "symbol_name": "I",
+                "type": "Image",
+                "raw_type": "struct Image_s",
+                "size": 16
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "L",
+                    "bitpos": 0,
+                    "type": "UINT",
+                    "size": 4,
+                    "value": "(UINT L) 0x7fffffffdc40: 500",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "H",
+                    "bitpos": 32,
+                    "type": "UINT",
+                    "size": 4,
+                    "value": "(UINT H) 0x7fffffffdc44: 500",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "tab",
+                    "bitpos": 64,
+                    "type": "Pixel *",
+                    "size": 8,
+                    "value": "0x7ffff7ee2010",
+                    "is_pointer": true
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc50",
+                "symbol_name": "I_masque",
+                "type": "Image",
+                "raw_type": "struct Image_s",
+                "size": 16
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "L",
+                    "bitpos": 0,
+                    "type": "UINT",
+                    "size": 4,
+                    "value": "(UINT L) 0x7fffffffdc50: 500",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "H",
+                    "bitpos": 32,
+                    "type": "UINT",
+                    "size": 4,
+                    "value": "(UINT H) 0x7fffffffdc54: 500",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "tab",
+                    "bitpos": 64,
+                    "type": "Pixel *",
+                    "size": 8,
+                    "value": "0x7ffff714b010",
+                    "is_pointer": true
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc60",
+                "symbol_name": "P",
+                "type": "Point",
+                "raw_type": "struct point",
+                "size": 16
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "x",
+                    "bitpos": 0,
+                    "type": "double",
+                    "size": 8,
+                    "value": "26",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "y",
+                    "bitpos": 64,
+                    "type": "double",
+                    "size": 8,
+                    "value": "45",
+                    "is_pointer": false
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc70",
+                "symbol_name": "S",
+                "type": "Seq_point",
+                "raw_type": "struct seq",
+                "size": 16
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "TMAX",
+                    "bitpos": 0,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "4096",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "Taille",
+                    "bitpos": 32,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "3215",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "tab",
+                    "bitpos": 64,
+                    "type": "Point *",
+                    "size": 8,
+                    "value": "0x55555575f9c0",
+                    "is_pointer": true
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdc80",
+                "symbol_name": "E_simp_B2",
+                "type": "Ens_Seq_Bez",
+                "raw_type": "struct Ens_Bez",
+                "size": 32
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "size",
+                    "bitpos": 0,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "1",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "TMAX",
+                    "bitpos": 32,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "100",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "card",
+                    "bitpos": 64,
+                    "type": "unsigned int",
+                    "size": 4,
+                    "value": "1",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "tab",
+                    "bitpos": 128,
+                    "type": "seq_bez *",
+                    "size": 8,
+                    "value": "0x55555575ed30",
+                    "is_pointer": true
+                },
+                {
+                    "field_name": "suiv",
+                    "bitpos": 192,
+                    "type": "struct Ens_Bez *",
+                    "size": 8,
+                    "value": "0x0",
+                    "is_pointer": true
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdcc0",
+                "symbol_name": "R",
+                "type": "Robot",
+                "raw_type": "struct robot",
+                "size": 40
+            },
+            "meta-type": "struct",
+            "fields": [
+                {
+                    "field_name": "Pos_a",
+                    "bitpos": 0,
+                    "type": "Point",
+                    "size": 16,
+                    "value": "(Point Pos_a) 0x7fffffffdcc0: \n\tdouble x: 25\n\tdouble y: 44\n",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "Dir_a",
+                    "bitpos": 128,
+                    "type": "Dir_rob",
+                    "size": 4,
+                    "value": "(Dir_rob Dir_a) 0x7fffffffdcd0: EST",
+                    "is_pointer": false
+                },
+                {
+                    "field_name": "Pos_dep",
+                    "bitpos": 192,
+                    "type": "Point",
+                    "size": 16,
+                    "value": "(Point Pos_dep) 0x7fffffffdcd8: \n\tdouble x: 25\n\tdouble y: 44\n",
+                    "is_pointer": false
+                }
+            ]
+        },
+        {
+            "base": {
+                "address": "0x7fffffffdde8",
+                "symbol_name": null,
+                "type": "char *",
+                "raw_type": "char *",
+                "size": 8
             },
             "meta-type": "string",
-            "value": "/mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisu00e9/moly/progs/theo/dummy_list"
-          }
+            "value": "/home/admin1/Bureau/stage/moly/main2"
+        }
+    ],
+    "edges": [
+        [
+            "0x55555575ed30",
+            "0x7ffff7eb0010",
+            "tab"
         ],
-        "edges": [
-          [
-            "0x400670",
+        [
+            "0x55555575ed30",
             null,
-            "next"
-          ],
-          [
-            "0x7ffffffedde0",
-            "0x400670",
-            null
-          ],
-          [
-            "0x7ffffffeddf0",
-            "0x7ffffffedee8",
-            null
-          ]
+            "suiv"
         ],
-        "stack": [
-          {
+        [
+            "0x7fffffffdc20",
+            "0x7fffffffdde8",
+            null
+        ],
+        [
+            "0x7fffffffdc40",
+            "0x7ffff7ee2010",
+            "tab"
+        ],
+        [
+            "0x7fffffffdc50",
+            "0x7ffff714b010",
+            "tab"
+        ],
+        [
+            "0x7fffffffdc70",
+            "0x55555575f9c0",
+            "tab"
+        ],
+        [
+            "0x7fffffffdc80",
+            "0x55555575ed30",
+            "tab"
+        ],
+        [
+            "0x7fffffffdc80",
+            null,
+            "suiv"
+        ]
+    ],
+    "stack": [
+        {
             "name": "main",
             "variables": [
-              {
-                "name": "argc",
-                "address": "0x7ffffffeddf8"
-              },
-              {
-                "name": "argv",
-                "address": "0x7ffffffeddf0"
-              },
-              {
-                "name": "a",
-                "address": "0x7ffffffeddec"
-              },
-              {
-                "name": "b",
-                "address": "0x7ffffffedde8"
-              },
-              {
-                "name": "head",
-                "address": "0x7ffffffedde0"
-              }
+                {
+                    "name": "R",
+                    "address": "0x7fffffffdcc0"
+                },
+                {
+                    "name": "E_simp_B2",
+                    "address": "0x7fffffffdc80"
+                },
+                {
+                    "name": "S",
+                    "address": "0x7fffffffdc70"
+                },
+                {
+                    "name": "P",
+                    "address": "0x7fffffffdc60"
+                },
+                {
+                    "name": "I_masque",
+                    "address": "0x7fffffffdc50"
+                },
+                {
+                    "name": "I",
+                    "address": "0x7fffffffdc40"
+                },
+                {
+                    "name": "d",
+                    "address": "0x7fffffffdc38"
+                },
+                {
+                    "name": "val_max",
+                    "address": "0x7fffffffdc34"
+                },
+                {
+                    "name": "i",
+                    "address": "0x7fffffffdc30"
+                },
+                {
+                    "name": "argc",
+                    "address": "0x7fffffffdc2c"
+                },
+                {
+                    "name": "argv",
+                    "address": "0x7fffffffdc20"
+                }
             ]
-          }
-        ]
-      };
-    */
+        }
+    ]
+    };*/
+
+
+    
     retour = creerNoeud(dataJSON);
     creerNode(sys,retour)
     CreerStack();
@@ -1304,8 +1661,9 @@ function CreerRectangle(ctx,coordX,coordY,TailleX,TailleY,couleur,bordure,taille
  * @param {texte} texte le texte à ecrire
  */
 function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax){
-    if(texte.length>30){
-        texte = texte.substr(0,27);
+    Taille = 12
+    if(texte.length>15){
+        texte = texte.substr(0,12);
         texte+= "..."
     }
     ctx.textAlign = "center";
@@ -1318,7 +1676,6 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax)
     if( num > 1){
         coordY -= Taille * (texte.split("\n").length/2) 
     }
-   
     if(tailleMax != undefined && tailleMax > 0){
         var nbSaut = 0; 
         texte.split("\n").forEach(element => {
@@ -1327,8 +1684,8 @@ function CreerText(ctx,coordX,coordY,Taille,police,couleur,texte,saut,tailleMax)
             }
         });
 
-        if(nbSaut%2 == 1 && nbSaut != 0)coordY-= (nbSaut/2 << 0) * Taille
-        else if(nbSaut != 0)coordY-= ((nbSaut/2 << 0) + 0.5) * Taille
+        if(nbSaut%2 == 1 && nbSaut != 0)coordY-= ((nbSaut/2 << 0) * Taille)/2
+        else if(nbSaut != 0)coordY-= (((nbSaut/2 << 0)) + 0.5 * Taille)/2
     }
     texte.split("\n").forEach(element => {
         if(compte >= saut){
@@ -1479,8 +1836,66 @@ function depInfo(){
 
 ////////////////////////////////////////////////////////////////TIMELINE////////////////////////////////////////////////////////////////////////////////////////
 
-document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.99;
+document.getElementById("TimeLine").style.width = document.getElementById("viewport").width * 0.5;
 document.getElementById("TimeLine").oninput = timeLine
+
+document.addEventListener('keyup',dealWithKeyboard)
+
+function dealWithKeyboard(e) {
+    if(!open)return
+    if(e.key == "ArrowRight"){
+        e.preventDefault()
+        flecheDroit()
+    }
+    if(e.key == "ArrowLeft"){
+        e.preventDefault()
+        flecheGauche()
+    }
+    if(e.key == "n"){
+        NS()
+    }
+}
+
+function flecheDroit(){
+    
+    if(document.getElementById("TimeLine").value == 1 || tailleProgramme == 0){
+        plus1()
+    }
+    else{
+        var incremente = 0;
+        var finalpos = undefined;
+        var position = document.getElementById("TimeLine").value * tailleProgramme;
+        for (let index = 0; index < decaleDepuisLastJSON.length; index++) {
+            if(position == incremente){
+                finalpos = index;
+                pos_slide = index;    
+            }
+            incremente += decaleDepuisLastJSON[index];
+         }
+        document.getElementById("TimeLine").value = parseFloat(document.getElementById("TimeLine").value ) + (decaleDepuisLastJSON[finalpos]/tailleProgramme)
+        timeLine();
+    }
+}   
+
+function flecheGauche(){
+    if(document.getElementById("TimeLine").value == 0 || tailleProgramme == 0){
+        return;
+    }else{
+        var incremente = 0;
+        var finalpos = undefined;
+        var position = document.getElementById("TimeLine").value * tailleProgramme;
+        for (let index = 0; index < decaleDepuisLastJSON.length; index++) {
+            if(position >= incremente && position <= incremente + decaleDepuisLastJSON[index]){
+                finalpos = index;
+                pos_slide = index; 
+            }
+            incremente += decaleDepuisLastJSON[index];
+        }
+        document.getElementById("TimeLine").value = parseFloat(document.getElementById("TimeLine").value ) - (decaleDepuisLastJSON[finalpos]/tailleProgramme)
+       
+        timeLine();
+    }
+}
 
 document.getElementById("plus1").onclick = plus1;
 document.getElementById("plus5").onclick = plus5;
@@ -1489,29 +1904,24 @@ document.getElementById("NS").onclick = NS;
 
 
 function NS(){
-    if(document.getElementById("NS").value == "N"){
-        document.getElementById("NS").value = "S"
+    if(document.getElementById("NS").value == "Next"){
+        document.getElementById("NS").value = "Step"
     }
     else{
-        document.getElementById("NS").value = "N"
+        document.getElementById("NS").value = "Next"
     }
 }
 
 
 
 function AvanceGDB(i){
-    if(document.getElementById("NS").value == "N")connection.send("n " + i);
+    if(document.getElementById("NS").value == "Next")connection.send("n " + i);
     else connection.send("s " + i);
     connection.send("print_memory -j");
 }
 
 function plus1(){
     plus(1)
-    /*
-    //TEST
-    connection.send("n");
-    connection.send("compare -j");
-    */
 }
 
 function plus5(){
@@ -1528,7 +1938,9 @@ bloc = false;
 var last_nb = 0;
 
 function plus(nb){
+    if(!open)return
     if(bloc)return;
+    if(document.getElementById("is_connected").style.color != "green")return;
     updateTimeline(nb);
     AvanceGDB(nb);//on avance de nb pas
     decaleDepuisLastJSON.push(nb);//on ajoute de cb de pas on est avancer cette fois ci
@@ -1625,8 +2037,8 @@ function decalePile(nbBlocsPlassables,nbBlocsTotaux,pourcent,taille){
 
 
 ///////fonctions useless/////////////
-//credit();
 table = "(╯°□°）╯︵ ┻━┻"
+credit();
 function credit(){
     console.log("Moly : Developpé par Théo Barrolet et Aurelien Flori");
     console.log("Lotos : Developpé par Thomas Hervé");

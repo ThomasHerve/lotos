@@ -8,7 +8,6 @@ connection.onopen = function(){
 	document.getElementById("is_connected").innerHTML = "Connected !"
 };
 
-//connection.send("coucou");
 
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */

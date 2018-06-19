@@ -8,6 +8,17 @@
     display: inline-block;
     font-size: 20px;
 }
+
+.buttonSelec {
+    background-color: rgb(1, 5, 253);
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 10px;
+}
 .buttonTime {
     background-color: #4CAF50; /* Green */
     border: none;
@@ -111,3 +122,13 @@
     border-radius: 50%; 
 }
 
+
+.image{
+    width: 30px;
+    height: 30px;
+}
+
+.entry{
+    position: relative;
+    left : 45%;
+}
