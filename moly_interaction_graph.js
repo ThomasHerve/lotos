@@ -5,16 +5,22 @@ var lastMessage = "";
 var fin = false;
 var lastMessageValide = "";
 var listeJSON = [];
+var listeCommande = []
 var test = true//mettre true pour les tests
 var open = false
+var first = true
 
 connection.onopen = function(){
 	console.log("Connection with gdb server opened");
 	if(test){
+		document.getElementById("image").src = "images/valide.png";
 		connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/theo/dummy_list");
+		connection.send("print_memory -j");
+		connection.send("n 0");
 		connection.send("n");
 		connection.send("print_memory -j")
 		open = true
+		document.getElementById("TimeLine").value = 0.5
 	}
 	document.getElementById("is_connected").style.color = "green";
 	document.getElementById("is_connected").innerHTML = "Connected !"
@@ -23,23 +29,23 @@ connection.onopen = function(){
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */
 	var temp = e.data;
-
+	if(test && e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized")return
 	if(!open){
 		if(!test && e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized"){
+			connection.send("print_memory -j");
 			open = true;
 			document.getElementById("image").src = "images/valide.png";
+			connection.send("n 0");
 			connection.send("n");
-			connection.send("print_memory -j")
+			connection.send("print_memory -j");
+			document.getElementById("TimeLine").value = 0.5;
+			return
 		}
 	}
 
 
 	if(temp != "Error occurred in Python command: local variable 'output' referenced before assignment" && temp != "Error occurred in Python command: 1"){
-		lastMessage = "";
-		
-		for(let i = 0;i <temp.length - 2;i++){
-			if(temp[i] != "\\")lastMessage+= temp[i];
-		}
+		lastMessage = temp
 		essaie = true;
 		try{
 			JSON.parse(lastMessage)
@@ -48,19 +54,25 @@ connection.onmessage = function(e){
 			while(!isNaN(parseInt(lastMessage[0], 10))){		
 				lastMessage = lastMessage.substring(1);
 			}
-			while(lastMessage[0] == "t"){
-				lastMessage = lastMessage.substring(1);
+			
+			while(lastMessage[0] == "\\" && lastMessage[1] == "t"){
+				lastMessage = lastMessage.substring(2);
 			}
-			document.getElementById("courant").innerHTML = "Ligne courante : " + lastMessage;
+			listeCommande.push(lastMessage)
+			document.getElementById("suivant").innerHTML = "Ligne prochainement executée : " + lastMessage;
+			if(listeCommande.length > 1)document.getElementById("courant").innerHTML = "Ligne courante : " + listeCommande[listeCommande.length-2];
 			essaie = false;
 		}
 		if(essaie){
 			listeJSON.push(lastMessage);
 			lastMessageValide = lastMessage;
-			if(JSON.parse(lastMessage).nodes.new != undefined)updateJSON(lastMessage);
+			let sortie = JSON.parse(lastMessage)
+			if(sortie.nodes.new != undefined)updateJSON(lastMessage);
 			else ouvrirJSON(sys,lastMessage);
 			document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
 			updateTimelineGraphique();
+			var ex = JSON.parse(listeJSON[listeJSON.length-2])
+			document.getElementById("dataLigne").innerHTML = " Fichier: " + ex.location.file + ", ligne numero: " + ex.location.line
 		}
 	}
 	else if (!fin){
@@ -96,8 +108,7 @@ function envoie(){
 			var ajout = "linear-gradient(to right, rgb(204, 204, 204) 0%"
 			ajout += ", rgb(204, 204, 204) 99.8%,rgb(0, 0, 0) 99.9%,rgb(204, 204, 204) 100%)"
 			document.getElementById("TimeLine").style.backgroundImage  = ajout;
-			connection.send("n");
-			connection.send("print_memory -j")
+			open = false
 		}
     }
 }

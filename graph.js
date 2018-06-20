@@ -747,6 +747,7 @@ var listeCarre = [];//contiendra tout les carrés permettant de faire la legende
 var pileActive = false;//savoir si actuellement la pile est afficher ou non
 var listVariablesPile = [];//liste contenant les variables de la pile (une variable = une adresse et un nom)
 var listStack = [];//liste qui contient une frame dans sa globalité
+var listeNode = [];//liste qui garde les nodes du coup d'avant pour permettre de conserver leurs etat
 
 ///////////////////FONCTIONS COULEURS//////////////
 
@@ -806,20 +807,25 @@ class carre{
 	}
 }
 
-
+var exData = undefined
 function ouvrirJSON(sys,message){ 
+    
     try{
         dataJSON = JSON.parse(message);
     }
     catch{
         return;
     }
-    
+
+    sys.eachNode(function(node, pt){
+        listeNode.push(node)
+    });
+
     sys.eachEdge(function(edge, pt1, pt2){
         sys.pruneEdge(edge);
     })
     sys.eachNode(function(node, pt){
-        sys.pruneNode(node);
+        sys.pruneNode(node.name);
     })
 
     /*
@@ -1362,8 +1368,7 @@ function ouvrirJSON(sys,message){
     ]
     };*/
 
-
-    
+    document.getElementById("dataLigne").innerHTML = " Fichier: " + dataJSON.location.file + ", ligne numero: " + dataJSON.location.line
     retour = creerNoeud(dataJSON);
     creerNode(sys,retour)
     CreerStack();
@@ -1501,7 +1506,11 @@ function creationNodesRecursives(champs,parent){
                    actifPile = casPileActive(champ.adresse);
                }
                /////////////////////////////////////////////////////////
-               sys.addNode(champ.base.address,{nom:symb,type:champ.base.type,tableau:champ.elements,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:champ["meta-type"],champs:champ.fields,valeurScalaire:champ.value,is_pointer:champ.is_pointer});
+               let estDeplie = true 
+               listeNode.forEach(node => {
+                   if(champ.base.address == node.name)estDeplie = node.data.deplie
+               });
+               sys.addNode(champ.base.address,{nom:symb,type:champ.base.type,tableau:champ.elements,active:listeCouleurActive[posCouleur],deplie:estDeplie,actifPile:actifPile,typeGenerique:champ["meta-type"],champs:champ.fields,valeurScalaire:champ.value,is_pointer:champ.is_pointer});
                var pos = 0;
                 var maxfield = 0;
                 if(sys.getNode(parent).data.champs != undefined){
@@ -1567,7 +1576,11 @@ function creerNode(sys,liste){
             actifPile = casPileActive(element.adresse);
         }
         /////////////////////////////////////////////////////////
-        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:true,actifPile:actifPile,typeGenerique:element.typeGenerique,champs:element.champs,valeurScalaire:element.valeurScalaire,is_pointer:element.is_pointer});
+        let estDeplie = true 
+        listeNode.forEach(node => {
+            if(element.adresse == node.name)estDeplie = node.data.deplie
+        });
+        sys.addNode(element.adresse,{nom:symb,type:element.type,tableau:element.tableau,active:listeCouleurActive[posCouleur],deplie:estDeplie,actifPile:actifPile,typeGenerique:element.typeGenerique,champs:element.champs,valeurScalaire:element.valeurScalaire,is_pointer:element.is_pointer});
         
         //si on a une recursion
         creationNodesRecursives(element.champs,element.adresse);
@@ -1854,10 +1867,22 @@ function dealWithKeyboard(e) {
     if(e.key == "n"){
         NS()
     }
+    if(e.key == "b"){
+        bloqueForce()
+    }
 }
 
+var forcesOn = true
+function bloqueForce(){
+    if(forcesOn){
+        sys.parameters({friction:1,repulsion:0,stiffness:0})
+    }
+    else sys.parameters({friction:0.5,repulsion:10000,stiffness:500})
+    forcesOn = !forcesOn
+}
+
+
 function flecheDroit(){
-    
     if(document.getElementById("TimeLine").value == 1 || tailleProgramme == 0){
         plus1()
     }
@@ -1868,7 +1893,7 @@ function flecheDroit(){
         for (let index = 0; index < decaleDepuisLastJSON.length; index++) {
             if(position == incremente){
                 finalpos = index;
-                pos_slide = index;    
+                pos_slide = index;
             }
             incremente += decaleDepuisLastJSON[index];
          }
@@ -1995,6 +2020,7 @@ function timeLine(){
     if(listeJSON[finalpos] != lastMessageValide){
         ouvrirJSON(sys,listeJSON[finalpos]);
         document.getElementById("pas").innerHTML = "Pas actuel : " + pas;
+        document.getElementById("courant").innerHTML = "Ligne courante : " + listeCommande[finalpos];
     }
     document.getElementById("TimeLine").value = pas/tailleProgramme;
     lastMessageValide = listeJSON[finalpos];
