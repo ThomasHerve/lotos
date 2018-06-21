@@ -59,6 +59,12 @@ connection.onmessage = function(e){
 			document.getElementById("image").src = "images/valide.png";
 			compteOpen = 2
 			open = true
+			if(fin){
+				fin = false
+				document.getElementById("plus1").style.backgroundColor  = "#4CAF50";
+				document.getElementById("plus5").style.backgroundColor  = "#4CAF50";
+				document.getElementById("plus10").style.backgroundColor  = "#4CAF50";
+			}
 			break
 		case 2:	
 			compteOpen = 3
@@ -122,18 +128,25 @@ document.getElementById("selec").onclick = envoie;
 function envoie(){
     if(connection.readyState === 1) {
 		envoieServeur("load-file " + document.getElementById("file").value);
-		document.getElementById("TimeLine").value = 0.5
-		if(open){
+		envoieReset()
+    }
+}
+
+function envoieReset(start){
+	document.getElementById("TimeLine").value = 0.5
+		if(open ||start){
 			tailleProgramme = 0;
 			document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
 			decaleDepuisLastJSON = []
+			listeSautJSON = []
+			listeJSON = []
+			listeJSONObjet = []
 			updateTimelineGraphique();
 			var ajout = "linear-gradient(to right, rgb(204, 204, 204) 0%"
 			ajout += ", rgb(204, 204, 204) 99.8%,rgb(0, 0, 0) 99.9%,rgb(204, 204, 204) 100%)"
 			document.getElementById("TimeLine").style.backgroundImage  = ajout;
-			open = false
+			if(!start)open = false
 		}
-    }
 }
 
 
@@ -142,6 +155,7 @@ document.getElementById("boutonConsole").onclick = consoleEnvoie;
 function consoleEnvoie(){
 	if(connection.readyState === 1){
 		var msg = document.getElementById("inputConsole").value
+		document.getElementById("inputConsole").value = ""
 		msg = msg.toLowerCase()
 		chaine = msg.split(" ")
 		if(estConforme(msg)){
@@ -159,10 +173,17 @@ function consoleEnvoie(){
 				plus(1,true)
 				envoieServeur(msg)
 				envoieServeur("print_memory -j")
+				refresh();
 			}
 		}
 		else{
 			envoieServeur(msg)
+			if(msg == "start"){
+				envoieReset(true)
+				envoieServeur("print_memory -j")
+				compteOpen = 0
+			}
+			refresh();
 		}
 	}
 }

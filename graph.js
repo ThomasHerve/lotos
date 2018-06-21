@@ -1870,6 +1870,9 @@ function dealWithKeyboard(e) {
     if(e.key == "b"){
         bloqueForce()
     }
+    if(e.key == "Enter"){
+        consoleEnvoie()
+    }
 }
 
 var forcesOn = true
