@@ -811,6 +811,7 @@ var exData = undefined
 function ouvrirJSON(sys,message){ 
     
     try{
+        if(JSON.parse(message) == dataJSON)return
         dataJSON = JSON.parse(message);
     }
     catch{
@@ -1471,7 +1472,6 @@ function creationNodesRecursives(champs,parent){
     champs.forEach(lechamp => {
         var champ = lechamp.value;
         if(typeof champ == "object"){
-            console.log(champ);
                 if(!appartientListe(champ.base.type,listeCouleur)){
                     listeCouleur.push(champ.base.type);
                     var couleur = couleurRandom();
@@ -1916,8 +1916,8 @@ function flecheGauche(){
             }
             incremente += decaleDepuisLastJSON[index];
         }
+        if(document.getElementById("TimeLine").value < 1 || fin)finalpos--
         document.getElementById("TimeLine").value = parseFloat(document.getElementById("TimeLine").value ) - (decaleDepuisLastJSON[finalpos]/tailleProgramme)
-       
         timeLine();
     }
 }
@@ -1937,12 +1937,10 @@ function NS(){
     }
 }
 
-
-
 function AvanceGDB(i){
-    if(document.getElementById("NS").value == "Next")connection.send("n " + i);
-    else connection.send("s " + i);
-    connection.send("print_memory -j");
+    if(document.getElementById("NS").value == "Next")envoieServeur("n " + i);
+    else envoieServeur("s " + i);
+    envoieServeur("print_memory -j");
 }
 
 function plus1(){
@@ -1962,14 +1960,15 @@ var tailleProgramme = 0
 bloc = false;
 var last_nb = 0;
 
-function plus(nb){
+function plus(nb,saut){
     if(!open)return
     if(bloc)return;
     if(document.getElementById("is_connected").style.color != "green")return;
     updateTimeline(nb);
-    AvanceGDB(nb);//on avance de nb pas
+    if(!saut)AvanceGDB(nb);//on avance de nb pas
     decaleDepuisLastJSON.push(nb);//on ajoute de cb de pas on est avancer cette fois ci
-    
+    listeSautJSON.push(saut != undefined)
+
     sys.renderer.redraw()
 }
 
@@ -1984,16 +1983,24 @@ function updateTimelineGraphique(){//rajout des marques en CSS
     var incremente = 0;
     var ajout = "linear-gradient(to right, rgb(204, 204, 204) 0%"
     for (let index = 0; index < decaleDepuisLastJSON.length; index++) {
+        var couleur = "rgb(204, 204, 204)"
+        var ex_color = "rgb(204, 204, 204)"
+        if(listeSautJSON[index])couleur = "rgb(255, 50, 50)"
+        if(index > 0 &&listeSautJSON[index - 1])ex_color = "rgb(255, 50, 50)"
         var pos = incremente/tailleProgramme * 100;
-        if(pos!=0)ajout += ", rgb(204, 204, 204) " + (pos-0.1) + "%, rgb(0, 0, 0) " + pos +"%, rgb(204, 204, 204) " + (pos+0.1) + "%";
-        else ajout += ", rgb(0, 0, 0) " + (pos+0.01) +"%, rgb(204, 204, 204) " + (pos+0.1) + "%";
+        if(pos!=0)ajout += ", " +  ex_color + " " + (pos-0.1) + "%, rgb(0, 0, 0) " + pos +"%, " + couleur +" " + (pos+0.1) + "%";
+        else ajout += ", rgb(0, 0, 0) " + (pos+0.01) +"%, " + couleur + " " + (pos+0.1) + "%";
         incremente += decaleDepuisLastJSON[index];
      }
-     ajout += ", rgb(204, 204, 204) 99.8%,rgb(0, 0, 0) 99.9%,rgb(204, 204, 204) 100%)"
+     ajout += ", " + couleur + "99.8%,rgb(0, 0, 0) 99.9%,rgb(204, 204, 204) 100%)"
      document.getElementById("TimeLine").style.backgroundImage  = ajout;
 }
 
 function timeLine(){
+    if(tailleProgramme == 0){
+        document.getElementById("TimeLine").value = 0.5
+        return
+    }
     var position = document.getElementById("TimeLine").value * tailleProgramme;
     position = Math.round(position);
 
@@ -2020,7 +2027,6 @@ function timeLine(){
     if(listeJSON[finalpos] != lastMessageValide){
         ouvrirJSON(sys,listeJSON[finalpos]);
         document.getElementById("pas").innerHTML = "Pas actuel : " + pas;
-        document.getElementById("courant").innerHTML = "Ligne courante : " + listeCommande[finalpos];
     }
     document.getElementById("TimeLine").value = pas/tailleProgramme;
     lastMessageValide = listeJSON[finalpos];

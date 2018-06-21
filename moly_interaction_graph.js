@@ -5,43 +5,66 @@ var lastMessage = "";
 var fin = false;
 var lastMessageValide = "";
 var listeJSON = [];
+var listeJSONObjet = []
 var listeCommande = []
+var listeSautJSON = []
 var test = true//mettre true pour les tests
 var open = false
-var first = true
+var lastEnvoie = ""
+var vientDeConsole = false
+var compteOpen = -1
 
 connection.onopen = function(){
 	console.log("Connection with gdb server opened");
-	if(test){
-		document.getElementById("image").src = "images/valide.png";
-		connection.send("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/theo/dummy_list");
-		connection.send("print_memory -j");
-		connection.send("n 0");
-		connection.send("n");
-		connection.send("print_memory -j")
-		open = true
-		document.getElementById("TimeLine").value = 0.5
-	}
 	document.getElementById("is_connected").style.color = "green";
 	document.getElementById("is_connected").innerHTML = "Connected !"
+	if(test){
+		envoieServeur("load-file /mnt/c/Users/therv/Desktop/VisualStudioCode/HTMLCSS/Librairie_graphique_personnalisé/moly/progs/theo/dummy_list");
+	}
+	
 };
 
 connection.onmessage = function(e){
 	/* Change ici quoi faire lorsque tu reçois un message dans e.data */
 	var temp = e.data;
-	if(test && e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized")return
+
+	if(compteOpen > 2 && !estConforme(lastEnvoie) && lastEnvoie != "print_memory -j"){
+		ajoutLog(temp)
+		return
+	}
+
+
+	if(test && e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized"){
+		compteOpen = 0
+		envoieServeur("print_memory -j");
+		document.getElementById("image").src = "images/valide.png";
+		document.getElementById("TimeLine").value = 0.5;
+		return
+	}
 	if(!open){
 		if(!test && e.data.split(" ")[1] == "successfuly" && e.data.split(" ")[2] == "initialized"){
-			connection.send("print_memory -j");
-			open = true;
+			compteOpen = 0
+			envoieServeur("print_memory -j");
 			document.getElementById("image").src = "images/valide.png";
-			connection.send("n 0");
-			connection.send("n");
-			connection.send("print_memory -j");
 			document.getElementById("TimeLine").value = 0.5;
 			return
 		}
 	}
+
+	switch(compteOpen){
+		case -1:
+			return
+		case 0:
+			envoieServeur("n 0");
+			document.getElementById("image").src = "images/valide.png";
+			compteOpen = 2
+			open = true
+			break
+		case 2:	
+			compteOpen = 3
+			break
+	}
+
 
 
 	if(temp != "Error occurred in Python command: local variable 'output' referenced before assignment" && temp != "Error occurred in Python command: 1"){
@@ -51,28 +74,28 @@ connection.onmessage = function(e){
 			JSON.parse(lastMessage)
 		}
 		catch(error){
+			
+			if(!estConforme(lastEnvoie) && lastEnvoie != "print_memory -j")return
 			while(!isNaN(parseInt(lastMessage[0], 10))){		
 				lastMessage = lastMessage.substring(1);
 			}
-			
 			while(lastMessage[0] == "\\" && lastMessage[1] == "t"){
 				lastMessage = lastMessage.substring(2);
 			}
 			listeCommande.push(lastMessage)
 			document.getElementById("suivant").innerHTML = "Ligne prochainement executée : " + lastMessage;
-			if(listeCommande.length > 1)document.getElementById("courant").innerHTML = "Ligne courante : " + listeCommande[listeCommande.length-2];
 			essaie = false;
+			
 		}
 		if(essaie){
 			listeJSON.push(lastMessage);
+			listeJSONObjet.push(JSON.parse(lastMessage))
 			lastMessageValide = lastMessage;
 			let sortie = JSON.parse(lastMessage)
 			if(sortie.nodes.new != undefined)updateJSON(lastMessage);
 			else ouvrirJSON(sys,lastMessage);
 			document.getElementById("pas").innerHTML = "Pas actuel : " + tailleProgramme;
 			updateTimelineGraphique();
-			var ex = JSON.parse(listeJSON[listeJSON.length-2])
-			document.getElementById("dataLigne").innerHTML = " Fichier: " + ex.location.file + ", ligne numero: " + ex.location.line
 		}
 	}
 	else if (!fin){
@@ -98,7 +121,7 @@ document.getElementById("selec").onclick = envoie;
 
 function envoie(){
     if(connection.readyState === 1) {
-		connection.send("load-file " + document.getElementById("file").value);
+		envoieServeur("load-file " + document.getElementById("file").value);
 		document.getElementById("TimeLine").value = 0.5
 		if(open){
 			tailleProgramme = 0;
@@ -113,6 +136,65 @@ function envoie(){
     }
 }
 
+
+document.getElementById("boutonConsole").onclick = consoleEnvoie;
+
+function consoleEnvoie(){
+	if(connection.readyState === 1){
+		var msg = document.getElementById("inputConsole").value
+		msg = msg.toLowerCase()
+		chaine = msg.split(" ")
+		if(estConforme(msg)){
+		    if(chaine[0] == "n" ||chaine[0] == "next"||chaine[0] == "s"||chaine[0] == "step"){
+				if(((chaine[0] == "n" ||chaine[0] == "next")&&(document.getElementById("NS").value == "Step"))||((chaine[0] == "s" ||chaine[0] == "step")&&(document.getElementById("NS").value == "Next")))NS();
+				if(chaine.length == 2){
+					 if(!isNaN(parseInt(chaine[1])) && !fin){
+						console.log(parseInt(chaine[1]))
+						plus(parseInt(chaine[1]))
+					 }
+				}
+				else if(chaine.length == 1 && !fin)plus1()
+			}
+			else{
+				plus(1,true)
+				envoieServeur(msg)
+				envoieServeur("print_memory -j")
+			}
+		}
+		else{
+			envoieServeur(msg)
+		}
+	}
+}
+
+function ajoutLog(msg){
+	document.getElementById("sortie3").innerHTML = document.getElementById("sortie2").innerHTML
+	document.getElementById("sortie2").innerHTML = document.getElementById("sortie1").innerHTML
+	document.getElementById("sortie1").innerHTML = msg
+}
+
+function envoieServeur(msg){
+	lastEnvoie = msg
+	connection.send(msg)
+}
+
+
+function estConforme(msg){
+	msg = msg.toLowerCase()
+	chaine = msg.split(" ")
+	if(msg == "n" || msg == "s" || msg == "next" || msg == "step" || msg == "continue" || msg == "c" || msg == "until" || msg == "u")return true
+	else if(chaine[0] == "n" ||chaine[0] == "next"||chaine[0] == "s"||chaine[0] == "step"){
+		if(chaine.length == 2){
+			try{
+				return !isNaN(parseInt(chaine[1]))
+			}
+			catch{
+				return false
+			}
+		}
+	}
+	return false;
+}
 /*
 let command_text = document.getElementById("command-text");
 let send_button = document.getElementById("send-command");
@@ -121,7 +203,7 @@ let response_text = document.getElementById("gdb-response");
 send_button.onclick = function (e) {
 	response_text.innerHTML = command_text.value;
 	if(connection.readyState === 1) {
-		connection.send(command_text.value);
+		envoieServeur(command_text.value);
 	} else {
 		console.log("Websocket not available");
 	}
@@ -129,7 +211,7 @@ send_button.onclick = function (e) {
 
 /* Pour envoyer une demande au serveur :
  * if(connection.readyState === 1) {
- *     connection.send(string_command);
+ *     envoieServeur(string_command);
  * } else {
  *     // Erreur
  * }
